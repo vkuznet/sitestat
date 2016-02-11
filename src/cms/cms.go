@@ -91,13 +91,19 @@ func updateDict(dict Record, nacc int, val string) {
 
 // helper function to collect popularity results and merge them into bins of NACC
 // with the help of updateDict function
-func popdb2datasetBins(records []Record) Record {
+func popdb2datasetBins(records []Record, siteDatasets []string) Record {
+	var zeroAccessDatasets []string
+	metric := "NACC"
 	rdict := make(Record)
 	for _, rec := range records {
-		nacc := int(rec["NACC"].(float64))
+		val := int(rec[metric].(float64))
 		dataset := rec["COLLNAME"].(string)
-		updateDict(rdict, nacc, dataset)
+		updateDict(rdict, val, dataset)
+		if !utils.InList(dataset, siteDatasets) {
+			zeroAccessDatasets = append(zeroAccessDatasets, dataset)
+		}
 	}
+	rdict["0"] = zeroAccessDatasets
 	return rdict
 }
 
@@ -145,8 +151,15 @@ func datasetBins2size(site string, record Record) Record {
 // local function which process single request for given site name and
 // set of time stamps
 func process(siteName string, tstamps []string, ch chan Record) {
-	res := popdb2datasetBins(datasetStats(siteName, tstamps))
+	// get statistics from popDB for given site and time range
+	popDBrecords := datasetStats(siteName, tstamps)
+	// get all dataset names on given site (from PhEDEx)
+	siteDatasets := datasetsAtSite(siteName)
+	// sort datasets into bins by naccess metrics
+	res := popdb2datasetBins(popDBrecords, siteDatasets)
+	// find out size of dataset for all bins
 	results := datasetBins2size(siteName, res)
+	// create return record and send it back to given channel
 	rec := make(Record)
 	rec[siteName] = results
 	ch <- rec
