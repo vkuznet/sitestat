@@ -1,3 +1,10 @@
+/*
+ *
+ * Author     : Valentin Kuznetsov <vkuznet AT gmail dot com>
+ * Description: cms package which provides set of utilities to get statistics
+ *				about CMS tier sites
+ * Created    : Wed Feb 10 19:31:44 EST 2016
+ */
 package cms
 
 import (

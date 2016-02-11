@@ -6,6 +6,12 @@ all: build
 build:
 	go clean; rm -rf pkg; go build
 
+build_osx:
+	go clean; rm -rf pkg; GOOS=darwin go build
+
+build_linux:
+	go clean; rm -rf pkg; GOOS=linux go build
+
 install:
 	go install
 

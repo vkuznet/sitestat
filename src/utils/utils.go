@@ -1,16 +1,13 @@
 /*
  *
  * Author     : Valentin Kuznetsov <vkuznet AT gmail dot com>
- * Description: DAS utils module
- * Created    : Fri Jun 26 14:25:01 EDT 2015
+ * Description: utils module for sitestat package
+ * Created    : Wed Feb 10 19:31:44 EST 2016
  */
 package utils
 
 import (
 	"fmt"
-	"log"
-	"regexp"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,58 +17,6 @@ import (
 // global variable for this module which we're going to use across
 // many modules
 var VERBOSE int
-
-// helper function to return Stack
-func Stack() string {
-	trace := make([]byte, 2048)
-	count := runtime.Stack(trace, false)
-	return fmt.Sprintf("\nStack of %d bytes: %s\n", count, trace)
-}
-
-// error helper function which can be used in defer ErrPropagate()
-func ErrPropagate(api string) {
-	if err := recover(); err != nil {
-		log.Println("DAS ERROR", api, "error", err, Stack())
-		panic(fmt.Sprintf("%s:%s", api, err))
-	}
-}
-
-// error helper function which can be used in goroutines as
-// ch := make(chan interface{})
-// go func() {
-//    defer ErrPropagate2Channel(api, ch)
-//    someFunction()
-// }()
-func ErrPropagate2Channel(api string, ch chan interface{}) {
-	if err := recover(); err != nil {
-		log.Println("DAS ERROR", api, "error", err, Stack())
-		ch <- fmt.Sprintf("%s:%s", api, err)
-	}
-}
-
-// Helper function to run any given function in defered go routine
-func GoDeferFunc(api string, f func()) {
-	ch := make(chan interface{})
-	go func() {
-		defer ErrPropagate2Channel(api, ch)
-		f()
-		ch <- "ok" // send to channel that we can read it later in case of success of f()
-	}()
-	err := <-ch
-	if err != nil && err != "ok" {
-		panic(err)
-	}
-}
-
-// helper function to find item in a list
-func FindInList(a string, arr []string) bool {
-	for _, e := range arr {
-		if e == a {
-			return true
-		}
-	}
-	return false
-}
 
 // helper function to check item in a list
 func InList(a string, list []string) bool {
@@ -96,53 +41,6 @@ func MapKeys(rec map[string]interface{}) []string {
 	return keys
 }
 
-// helper function to compare list of strings
-func EqualLists(list1, list2 []string) bool {
-	count := 0
-	for _, k := range list1 {
-		if InList(k, list2) {
-			count += 1
-		} else {
-			return false
-		}
-	}
-	if len(list2) == count {
-		return true
-	}
-	return false
-}
-
-// helper function to check that entries from list1 are all appear in list2
-func CheckEntries(list1, list2 []string) bool {
-	var out []string
-	for _, k := range list1 {
-		if InList(k, list2) {
-			//             count += 1
-			out = append(out, k)
-		}
-	}
-	if len(out) == len(list1) {
-		return true
-	}
-	return false
-}
-
-// helper function to convert given time into Unix timestamp
-func UnixTime(ts string) int64 {
-	// time is unix since epoch
-	if len(ts) == 10 { // unix time
-		tstamp, _ := strconv.ParseInt(ts, 10, 64)
-		return tstamp
-	}
-	// YYYYMMDD, always use 2006 as year 01 for month and 02 for date since it is predefined int Go parser
-	const layout = "20060102"
-	t, err := time.Parse(layout, ts)
-	if err != nil {
-		panic(err)
-	}
-	return int64(t.Unix())
-}
-
 // helper function to convert input list into set
 func List2Set(arr []string) []string {
 	var out []string
@@ -152,12 +50,6 @@ func List2Set(arr []string) []string {
 		}
 	}
 	return out
-}
-
-// helper function to convert Unix time into human readable form
-func TimeFormat(ts float64) string {
-	layout := "2006-01-02 15:04:05"
-	return time.Unix(int64(ts), 0).UTC().Format(layout)
 }
 
 // helper function to convert size into human readable form
@@ -171,16 +63,6 @@ func SizeFormat(val float64) string {
 		val = val / base
 	}
 	return fmt.Sprintf("%3.1f%s", val, xlist[len(xlist)])
-}
-
-// helper function to test if given value is integer
-func IsInt(val string) bool {
-	pat := "(^[0-9-]$|^[0-9-][0-9]*$)"
-	matched, _ := regexp.MatchString(pat, val)
-	if matched {
-		return true
-	}
-	return false
 }
 
 // helper function to perform sum operation over provided array of floats
