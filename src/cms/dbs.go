@@ -27,7 +27,7 @@ func loadDBSData(furl string, data []byte) []Record {
 }
 
 // DBS helper function to get dataset info from blocksummaries DBS API
-func datasetInfo(dataset string, ch chan float64) {
+func datasetInfo(dataset string, ch chan Record) {
 	api := "blocksummaries"
 	furl := fmt.Sprintf("%s/%s/?dataset=%s", dbsUrl(), api, dataset)
 	response := utils.FetchResponse(furl, "")
@@ -41,5 +41,29 @@ func datasetInfo(dataset string, ch chan float64) {
 			size += rec["file_size"].(float64)
 		}
 	}
-	ch <- size
+	rec := make(Record)
+	rec["dataset"] = dataset
+	rec["size"] = size
+	rec["tier"] = utils.DataTier(dataset)
+	ch <- rec
+}
+
+// helper function to get CMS data tier names
+func dataTiers() []string {
+	var out []string
+	api := "datatiers"
+	furl := fmt.Sprintf("%s/%s/", dbsUrl(), api)
+	response := utils.FetchResponse(furl, "")
+	if response.Error == nil {
+		records := loadDBSData(furl, response.Data)
+		if utils.VERBOSE > 1 {
+			fmt.Println("furl", furl, records)
+		}
+		for _, rec := range records {
+			tier := rec["data_tier_name"].(string)
+			out = append(out, tier)
+		}
+	}
+	return utils.List2Set(out)
+
 }

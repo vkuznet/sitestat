@@ -13,7 +13,8 @@ import (
 )
 
 // helper function to load PopDB data stream
-func loadPopDBData(furl string, data []byte) []Record {
+// if data tier is given we only filter datasets with given tier
+func loadPopDBData(furl string, data []byte, tier string) []Record {
 	var out []Record
 	var rec Record
 	err := json.Unmarshal(data, &rec)
@@ -27,10 +28,21 @@ func loadPopDBData(furl string, data []byte) []Record {
 	values := rec["DATA"].([]interface{})
 	for _, item := range values {
 		row := make(Record)
-		for k, v := range item.(map[string]interface{}) {
-			row[k] = v
+		rec := item.(map[string]interface{})
+		dataset := rec["COLLNAME"].(string)
+		dataTier := utils.DataTier(dataset)
+		keep := true
+		if tier != "" {
+			if dataTier != tier {
+				keep = false
+			}
 		}
-		out = append(out, row)
+		if keep {
+			for k, v := range item.(map[string]interface{}) {
+				row[k] = v
+			}
+			out = append(out, row)
+		}
 	}
 	return out
 }
@@ -40,7 +52,7 @@ func popDBtstamp(ts string) string {
 	return fmt.Sprintf("%s-%s-%s", ts[0:4], ts[4:6], ts[6:8])
 }
 
-func datasetStats(siteName string, tstamps []string) []Record {
+func datasetStats(siteName string, tstamps []string, tier string) []Record {
 	var out []Record
 	api := "DSStatInTimeWindow"
 	tstart := popDBtstamp(tstamps[0])
@@ -51,7 +63,7 @@ func datasetStats(siteName string, tstamps []string) []Record {
 	}
 	response := utils.FetchResponse(furl, "")
 	if response.Error == nil {
-		records := loadPopDBData(furl, response.Data)
+		records := loadPopDBData(furl, response.Data, tier)
 		return records
 	}
 	return out

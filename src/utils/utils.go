@@ -8,6 +8,7 @@ package utils
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,6 +18,43 @@ import (
 // global variable for this module which we're going to use across
 // many modules
 var VERBOSE int
+
+// test environment
+func TestEnv() {
+	uproxy := os.Getenv("X509_USER_PROXY")
+	ucert := os.Getenv("X509_USER_CERT")
+	if uproxy == "" && ucert == "" {
+		fmt.Println("Neither X509_USER_PROXY or X509_USER_CERT is set")
+		os.Exit(-1)
+	}
+	uckey := os.Getenv("X509_USER_KEY")
+	if uckey == "" {
+		fmt.Println("X509_USER_KEY is not set")
+		os.Exit(-1)
+	}
+}
+func TestMetric(metric string) {
+	metrics := []string{"NACC", "TOTCPU", "NUSERS", "RNACC", "RNUSERS", "RTOTCPU"}
+	if !InList(metric, metrics) {
+		msg := fmt.Sprintf("Wrong metric '%s', please choose from %v", metric, metrics)
+		fmt.Println(msg)
+		os.Exit(-1)
+	}
+}
+func TestBreakdown(bdown string) {
+	bdowns := []string{"tier", "dataset", ""}
+	if !InList(bdown, bdowns) {
+		msg := fmt.Sprintf("Wrong breakdown value '%s', please choose from %v", bdown, bdowns)
+		fmt.Println(msg)
+		os.Exit(-1)
+	}
+}
+
+// helper function to extract data tier from dataset name
+func DataTier(dataset string) string {
+	dparts := strings.Split(dataset, "/")
+	return dparts[len(dparts)-1]
+}
 
 // helper function to check item in a list
 func InList(a string, list []string) bool {
@@ -110,7 +148,9 @@ func TimeStamps(ts string) []string {
 	} else if strings.HasSuffix(ts, "m") == true { // N-months
 		val := extractVal(ts)
 		sec := now - int64(val*30*24*60*60)
-		fmt.Println(ts, val, now, sec)
+		if VERBOSE > 0 {
+			fmt.Println("time interval", ts, val, now, sec)
+		}
 		bdate = time.Unix(sec, 0).Format(layout)
 	} else if strings.HasSuffix(ts, "y") == true { // N-years
 		val := extractVal(ts)
