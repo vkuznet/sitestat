@@ -121,13 +121,6 @@ func Sum(data []float64) float64 {
 	return out
 }
 
-// implement sort for []int type
-type IntList []int
-
-func (s IntList) Len() int           { return len(s) }
-func (s IntList) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s IntList) Less(i, j int) bool { return s[i] < s[j] }
-
 // implement sort for []string type
 type StringList []string
 
