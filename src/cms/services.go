@@ -21,3 +21,4 @@ func popdbUrl() string {
 
 // main record we work with
 type Record map[string]interface{}
+type BinRecord map[int]interface{}

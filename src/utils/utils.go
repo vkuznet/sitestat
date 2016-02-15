@@ -79,6 +79,15 @@ func MapKeys(rec map[string]interface{}) []string {
 	return keys
 }
 
+// helper function to return keys from a map
+func MapIntKeys(rec map[int]interface{}) []int {
+	keys := make([]int, 0, len(rec))
+	for k := range rec {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 // helper function to convert input list into set
 func List2Set(arr []string) []string {
 	var out []string
@@ -188,5 +197,21 @@ func MakeChunks(arr []string, size int) [][]string {
 	if abeg < alen {
 		out = append(out, arr[abeg:alen-1])
 	}
+	return out
+}
+
+// helper function to return bin values
+func Bins(bins string) []int {
+	if bins == "" {
+		return []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	}
+	var out []int
+	for _, v := range strings.Split(bins, ",") {
+		val, _ := strconv.Atoi(v)
+		if val > 0 {
+			out = append(out, val)
+		}
+	}
+	sort.Ints(out)
 	return out
 }
