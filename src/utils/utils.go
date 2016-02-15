@@ -34,7 +34,7 @@ func TestEnv() {
 	}
 }
 func TestMetric(metric string) {
-	metrics := []string{"NACC", "TOTCPU", "NUSERS", "RNACC", "RNUSERS", "RTOTCPU"}
+	metrics := []string{"NACC", "TOTCPU", "NUSERS"}
 	if !InList(metric, metrics) {
 		msg := fmt.Sprintf("Wrong metric '%s', please choose from %v", metric, metrics)
 		fmt.Println(msg)
