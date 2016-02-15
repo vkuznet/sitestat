@@ -12,7 +12,7 @@ func main() {
 	var site string
 	flag.StringVar(&site, "site", "", "CMS site name, use T1, T2, T3 to specify all Tier sites")
 	var trange string
-	flag.StringVar(&trange, "trange", "1d", "Specify time interval in YYYYMMDD format, e.g 20150101-20150201 or use short notations 1d, 1m, 1y for one day, one month and one year, respectively")
+	flag.StringVar(&trange, "trange", "1d", "Specify time interval in YYYYMMDD format, e.g 20150101-20150201 or use short notations 1d, 1m, 1y for one day, month, year, respectively")
 	var tier string
 	flag.StringVar(&tier, "tier", "", "Look-up specific data-tier")
 	var metric string
