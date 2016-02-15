@@ -13,6 +13,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 	"utils"
 )
@@ -92,16 +93,40 @@ func formatResults(metric string, records []Record, breakdown string) {
 					pad = "+"
 				}
 				report += fmt.Sprintf("%s %s%s size %f (%s)\n", metric, bin, pad, size, utils.SizeFormat(size))
-				if breakdown != "" {
-					for k, v := range bdown {
-						size := v.(float64)
-						report += fmt.Sprintf("   %s\t%f (%s)\n", k, size, utils.SizeFormat(size))
-					}
-				}
+				report += formatBreakdown(bdown, breakdown)
 			}
 			fmt.Println(report)
 		}
 	}
+}
+
+func formatBreakdown(bdown Record, breakdown string) string {
+	report := ""
+	if breakdown == "" {
+		return report
+	}
+	keys := utils.MapKeys(bdown)
+	lsize := 0
+	if breakdown == "tier" {
+		sort.Sort(utils.StringList(keys))
+		for _, k := range keys {
+			if len(k) > lsize {
+				lsize = len(k)
+			}
+		}
+	}
+	for _, k := range keys {
+		v := bdown[k]
+		size := v.(float64)
+		pad := ""
+		if breakdown == "tier" {
+			if len(k) < lsize {
+				pad = strings.Repeat(" ", (lsize - len(k)))
+			}
+		}
+		report += fmt.Sprintf("   %s%s\t%f (%s)\n", k, pad, size, utils.SizeFormat(size))
+	}
+	return report
 }
 
 // update dictionary of dict[nacc] = [datasets]
