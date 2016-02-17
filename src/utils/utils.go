@@ -18,6 +18,7 @@ import (
 // global variable for this module which we're going to use across
 // many modules
 var VERBOSE int
+var PROFILE bool
 
 // test environment
 func TestEnv() {
@@ -132,6 +133,22 @@ func (s StringList) Less(i, j int) bool { return s[i] < s[j] }
 func extractVal(ts string) int {
 	val, _ := strconv.Atoi(ts[0 : len(ts)-1])
 	return val
+}
+
+// helper function to convert given time into Unix timestamp
+func UnixTime(ts string) int64 {
+	// time is unix since epoch
+	if len(ts) == 10 { // unix time
+		tstamp, _ := strconv.ParseInt(ts, 10, 64)
+		return tstamp
+	}
+	// YYYYMMDD, always use 2006 as year 01 for month and 02 for date since it is predefined int Go parser
+	const layout = "20060102"
+	t, err := time.Parse(layout, ts)
+	if err != nil {
+		panic(err)
+	}
+	return int64(t.Unix())
 }
 
 // convert given timestamp into time stamp list
