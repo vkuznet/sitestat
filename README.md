@@ -21,10 +21,14 @@ Usage of ./sitestat:
     	Comma separated list of bin values, e.g. 0,1,2,3,4 for naccesses or 0,10,100 for tot cpu metrics
   -breakdown string
     	Breakdown report into more details (tier, dataset)
+  -dbsinfo
+    	Use DBS to collect dataset information, default use PhEDEx
+  -format string
+    	Output format type, txt or json (default "txt")
   -metric string
     	Popularity DB metric (NACC, TOTCPU, NUSERS) (default "NACC")
-  -report string
-    	Report type, txt or json (default "txt")
+  -profile
+    	profile code
   -site string
     	CMS site name, use T1, T2, T3 to specify all Tier sites
   -tier string
@@ -59,4 +63,11 @@ sitestat -site T2_XX_Abc -trange 1m -breakdown dataset
 
 # list site statistics for last month with breakdown for all data-tiers and look for NUSERS metric
 sitestat -site T2_XX_Abc -trange 1m -metric NUSERS -breakdown tier
+
+# by default sitestat relies on PhEDEx data-service to collect
+# dataset information on site, but we may use DBS instead
+sitestat -site T2_XX_Abc -trange 1m -dbsinfo
+
+# return information in json data format
+sitestat -site T2_XX_Abc -trange 1m -format json
 ```
