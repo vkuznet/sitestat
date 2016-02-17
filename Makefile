@@ -6,7 +6,7 @@ all: build
 build:
 	go clean; rm -rf pkg; go build
 
-build_all: build_osx build_linux
+build_all: build_osx build_linux build
 
 build_osx:
 	go clean; rm -rf pkg sitestat_osx; GOOS=darwin go build
