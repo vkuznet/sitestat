@@ -9,6 +9,7 @@ package cms
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"utils"
 )
 
@@ -57,6 +58,7 @@ func datasetStats(siteName string, tstamps []string, tier string) []Record {
 	api := "DSStatInTimeWindow"
 	tstart := popDBtstamp(tstamps[0])
 	tstop := popDBtstamp(tstamps[len(tstamps)-1])
+	siteName = strings.Replace(siteName, "_Disk", "", 1)
 	furl := fmt.Sprintf("%s/%s/?sitename=%s&tstart=%s&tstop=%s", popdbUrl(), api, siteName, tstart, tstop)
 	if utils.VERBOSE > 1 {
 		fmt.Println("furl", furl)

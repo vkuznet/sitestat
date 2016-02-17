@@ -11,14 +11,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
-	"strings"
 	"time"
 	"utils"
 )
 
+// global variables
+var DBSINFO bool
+
 // exported function which process user request
-func Process(metric, siteName, tstamp, tier, breakdown, binValues, report string) {
+func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string) {
 	utils.TestEnv()
 	utils.TestMetric(metric)
 	utils.TestBreakdown(breakdown)
@@ -31,6 +32,9 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, report string
 	sites := siteNames(siteName)
 	bins := utils.Bins(binValues)
 	tstamps := utils.TimeStamps(tstamp)
+	if utils.VERBOSE > 0 {
+		fmt.Printf("Site: %s, sites %v, tstamp %s, interval %v\n", siteName, sites, tstamp, tstamps)
+	}
 	ch := make(chan Record)
 	for _, siteName := range sites {
 		go process(metric, siteName, tstamps, tier, breakdown, bins, ch)
@@ -48,11 +52,32 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, report string
 			break
 		}
 	}
-	if report == "json" {
-		res, _ := json.Marshal(out)
+	if format == "json" {
+		var records []Record
+		for _, rec := range out {
+			nrec := make(Record)
+			for site, sdict := range rec {
+				nrow := make(map[string]interface{})
+				for key, val := range sdict.(Record) { // key=results|breakdown, val is a dict
+					row := make(map[string]interface{})
+					for kkk, vvv := range val.(BinRecord) {
+						row[fmt.Sprintf("%d", kkk)] = vvv
+					}
+					nrow[key] = row
+				}
+				nrec[site] = nrow
+			}
+			records = append(records, nrec)
+		}
+		res, err := json.Marshal(records)
+		if err != nil {
+			fmt.Println("Unable to marshal json out of found results")
+			fmt.Println(err)
+			os.Exit(-1)
+		}
 		fmt.Println(string(res))
 	} else {
-		msg := fmt.Sprintf("Final results: metric %s, site, %s, time interval %s", metric, siteName, tstamp)
+		msg := fmt.Sprintf("Final results: metric %s, site, %s, time interval %s %v", metric, siteName, tstamp, tstamps)
 		if tier != "" {
 			msg += fmt.Sprintf(", tier %s", tier)
 		}
@@ -64,136 +89,106 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, report string
 	}
 }
 
-// helper function to format aggregated results
-func formatResults(metric string, bins []int, records []Record, breakdown string) {
-	for _, rec := range records {
-		for site, vals := range rec {
-			rec := vals.(Record)
-			results := rec["results"].(BinRecord)
-			bresults := rec["breakdown"].(BinRecord)
-			//             results := vals.(Record)
-			report := fmt.Sprintf("%s:\n", site)
-			ikeys := utils.MapIntKeys(results)
-			sort.Ints(ikeys)
-			pad := ""
-			for _, bin := range ikeys {
-				size := results[bin].(float64)
-				bdown := bresults[bin].(Record)
-				if bin == bins[len(bins)-1] {
-					pad = "+"
-				}
-				report += fmt.Sprintf("%s %d%s size %f (%s)\n", metric, bin, pad, size, utils.SizeFormat(size))
-				report += formatBreakdown(bdown, breakdown)
-			}
-			fmt.Println(report)
-		}
-	}
-}
-
-func formatBreakdown(bdown Record, breakdown string) string {
-	report := ""
-	if breakdown == "" {
-		return report
-	}
-	keys := utils.MapKeys(bdown)
-	lsize := 0
-	if breakdown == "tier" {
-		sort.Sort(utils.StringList(keys))
-		for _, k := range keys {
-			if len(k) > lsize {
-				lsize = len(k)
-			}
-		}
-	}
-	for _, k := range keys {
-		v := bdown[k]
-		size := v.(float64)
-		pad := ""
-		if breakdown == "tier" {
-			if len(k) < lsize {
-				pad = strings.Repeat(" ", (lsize - len(k)))
-			}
-		}
-		report += fmt.Sprintf("   %s%s\t%f (%s)\n", k, pad, size, utils.SizeFormat(size))
-	}
-	return report
-}
-
-// update dictionary of dict[nacc] = [datasets]
-func updateDict(bins []int, dict BinRecord, metricValue int, val string) {
-	// find bin where our metric value fall into
-	binValue := bins[0]
-	for _, v := range bins {
-		if metricValue >= v {
-			binValue = v
-		}
-	}
-	rec, ok := dict[binValue]
-	if ok {
-		arr := rec.([]string)
-		arr = append(arr, val)
-		dict[binValue] = utils.List2Set(arr)
-	} else {
-		dict[binValue] = []string{val}
-	}
-}
-
 // helper function to collect popularity results and merge them into bins of given metric
 // with the help of updateDict function
-func popdb2Bins(metric string, bins []int, records []Record, siteDatasets []string) BinRecord {
-	var zeroMetricDatasets []string
+func popdb2Bins(metric string, bins []int, records []Record, siteDatasets *[]string) BinRecord {
+	var popdbDatasets []string
 	rdict := make(BinRecord)
-	for _, rec := range records {
-		val := int(rec[metric].(float64))
+	for _, bin := range bins {
+		rdict[bin] = []string{} // init all bins
+	}
+	for _, rec := range records { // loop over popularity records
+		mval := int(rec[metric].(float64))
 		dataset := rec["COLLNAME"].(string)
-		updateDict(bins, rdict, val, dataset)
-		if !utils.InList(dataset, siteDatasets) {
+		popdbDatasets = append(popdbDatasets, dataset)
+		updateDict(bins, rdict, mval, dataset)
+	}
+	// loop over site datasets and collect zero bin for given metric
+	var zeroMetricDatasets []string
+	for _, dataset := range *siteDatasets {
+		if !utils.InList(dataset, popdbDatasets) {
 			zeroMetricDatasets = append(zeroMetricDatasets, dataset)
 		}
 	}
 	rdict[0] = zeroMetricDatasets
+	for _, bin := range bins { // make sure that we have unique list of datasets in every bin
+		arr := rdict[bin].([]string)
+		rdict[bin] = utils.List2Set(arr)
+	}
 	return rdict
+}
+
+type BinStruct struct {
+	bin  int
+	size float64
+	brec Record
+}
+
+// helper function to update given bin
+func updateBin(bin int, site string, datasets []string, tstamp, breakdown string, ch chan BinStruct) {
+	newSize := 0.0
+	bdict := make(Record)
+	for cdx, chunk := range utils.MakeChunks(datasets, 100) {
+		if utils.VERBOSE == 1 {
+			fmt.Printf("process bin=%d, chunk=%d, %d datasets\n", bin, cdx, len(chunk))
+		}
+		if utils.VERBOSE == 2 {
+			fmt.Println("process chunk", chunk)
+		}
+		dch := make(chan Record)
+		for _, dataset := range chunk {
+			if DBSINFO {
+				go datasetInfo(dataset, dch) // DBS call
+			} else {
+				go datasetInfoAtSite(dataset, site, tstamp, dch) // PhEDEx call
+			}
+		}
+		var out []Record
+		for { // collect results
+			select {
+			case r := <-dch:
+				out = append(out, r)
+			default:
+				time.Sleep(time.Duration(10) * time.Millisecond) // wait for response
+			}
+			if len(out) == len(chunk) {
+				break
+			}
+		}
+		newSize += sumSize(out)
+		bdict = updateBreakdown(breakdown, bdict, out)
+	}
+	ch <- BinStruct{bin, newSize, bdict}
 }
 
 // helper function to convert popdb bin record dict[nacc] = [datasets] into
 // dict[nacc] = size
 // Here we use site purely to show the progress in verbose mode
-func bins2size(site string, record BinRecord, breakdown string) (BinRecord, BinRecord) {
+func bins2size(site string, brecord BinRecord, tstamp, breakdown string) (BinRecord, BinRecord) {
 	rdict := make(BinRecord)
 	bdict := make(BinRecord)
-	for bin, val := range record {
+	ch := make(chan BinStruct)
+	for bin, val := range brecord { // loop over record with bins
 		rdict[bin] = 0.0
 		bdict[bin] = make(Record)
 		datasets := val.([]string)
 		if utils.VERBOSE == 1 {
 			fmt.Printf("%s, bin=%s, %d datasets", site, bin, len(datasets))
 		}
-		for cdx, chunk := range utils.MakeChunks(datasets, 100) {
-			if utils.VERBOSE == 1 {
-				fmt.Printf("process bin=%s, chunk=%d, %d datasets\n", bin, cdx, len(chunk))
-			}
-			if utils.VERBOSE == 2 {
-				fmt.Println("process chunk", chunk)
-			}
-			ch := make(chan Record)
-			for _, dataset := range chunk {
-				go datasetInfo(dataset, ch)
-			}
-			var out []Record
-			for { // collect results
-				select {
-				case r := <-ch:
-					out = append(out, r)
-				default:
-					time.Sleep(time.Duration(10) * time.Millisecond) // wait for response
-				}
-				if len(out) == len(chunk) {
-					break
-				}
-			}
-			old_sum := rdict[bin].(float64)
-			rdict[bin] = old_sum + sumSize(out)
-			bdict[bin] = updateBreakdown(breakdown, bdict[bin].(Record), out)
+		go updateBin(bin, site, datasets, tstamp, breakdown, ch)
+	}
+	counter := 0
+	for { // collect results
+		select {
+		case r := <-ch:
+			rdict[r.bin] = r.size
+			bdict[r.bin] = r.brec
+			counter += 1
+		default:
+			time.Sleep(time.Duration(10) * time.Millisecond) // wait for response
+		}
+		if counter == len(brecord) {
+			break
 		}
 	}
 	return rdict, bdict
@@ -202,14 +197,27 @@ func bins2size(site string, record BinRecord, breakdown string) (BinRecord, BinR
 // local function which process single request for given site name and
 // set of time stamps
 func process(metric, siteName string, tstamps []string, tier, breakdown string, bins []int, ch chan Record) {
+	startTime := time.Now()
 	// get statistics from popDB for given site and time range
 	popDBrecords := datasetStats(siteName, tstamps, tier)
-	// get all dataset names on given site (from PhEDEx)
-	siteDatasets := datasetsAtSite(siteName)
+	if utils.PROFILE {
+		fmt.Println("popDBRecords", time.Now().Sub(startTime))
+	}
+	// get dataset dict on given site (from PhEDEx)
+	siteDatasets := datasetsAtSite(siteName, tstamps[0])
+	if utils.PROFILE {
+		fmt.Println("datasetsAtSite", time.Now().Sub(startTime))
+	}
 	// sort dataset results from popDB into bins by given metric
-	res := popdb2Bins(metric, bins, popDBrecords, siteDatasets)
+	rdict := popdb2Bins(metric, bins, popDBrecords, &siteDatasets)
+	if utils.PROFILE {
+		fmt.Println("popdb2Bins", time.Now().Sub(startTime))
+	}
 	// find out size for all bins
-	results, bres := bins2size(siteName, res, breakdown)
+	results, bres := bins2size(siteName, rdict, tstamps[0], breakdown)
+	if utils.PROFILE {
+		fmt.Println("bins2size", time.Now().Sub(startTime))
+	}
 	// create return record and send it back to given channel
 	rec := make(Record)
 	rec[siteName] = Record{"results": results, "breakdown": bres}

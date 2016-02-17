@@ -56,11 +56,17 @@ func siteNames(site string) []string {
 		records := loadSiteDBData(furl, response.Data)
 		for _, r := range records {
 			siteName := r["alias"].(string)
-			if strings.HasPrefix(siteName, site) {
-				out = append(out, siteName)
+			siteType := r["type"].(string)
+			if siteType == "phedex" && strings.HasPrefix(siteName, site) {
+				if strings.HasPrefix(site, "T1_") {
+					if strings.HasSuffix(siteName, "_Disk") {
+						out = append(out, siteName)
+					}
+				} else {
+					out = append(out, siteName)
+				}
 			}
 		}
 	}
 	return utils.List2Set(out)
-
 }
