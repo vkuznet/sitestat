@@ -27,12 +27,46 @@ func loadPhedexData(furl string, data []byte) []Record {
 }
 
 // helper function to find all dataset at a given tier-site
-func datasetsAtSite(siteName string) []string {
-	var out []string
-	api := "blockreplicasummary"
-	furl := fmt.Sprintf("%s/%s?node=%s", phedexUrl(), api, siteName)
+func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record) {
+	if !datasetNameOk(dataset) {
+		ch <- Record{"dataset": dataset, "size": 0.0, "tier": "unknown"}
+		return
+	}
+	api := "blockreplicas"
+	furl := fmt.Sprintf("%s/%s?dataset=%s&node=%s&create_since=%d", phedexUrl(), api, dataset, siteName, utils.UnixTime(tstamp))
 	if utils.VERBOSE > 1 {
 		fmt.Println("furl", furl)
+	}
+	if strings.HasPrefix(siteName, "T1_") && !strings.HasSuffix(siteName, "_Disk") {
+		siteName += "_Disk"
+	}
+	response := utils.FetchResponse(furl, "")
+	size := 0.
+	if response.Error == nil {
+		records := loadPhedexData(furl, response.Data)
+		for _, rec := range records {
+			val := rec["phedex"].(map[string]interface{})
+			blocks := val["block"].([]interface{})
+			for _, item := range blocks {
+				brec := item.(map[string]interface{})
+				bytes := brec["bytes"].(float64)
+				size += bytes
+			}
+		}
+	}
+	ch <- Record{"dataset": dataset, "size": size, "tier": utils.DataTier(dataset)}
+}
+
+// helper function to find all dataset at a given tier-site
+func datasetsDictAtSite(siteName, tstamp string) Record {
+	rdict := make(Record)
+	api := "blockreplicas"
+	furl := fmt.Sprintf("%s/%s?node=%s&create_since=%d", phedexUrl(), api, siteName, utils.UnixTime(tstamp))
+	if utils.VERBOSE > 1 {
+		fmt.Println("furl", furl)
+	}
+	if strings.HasPrefix(siteName, "T1_") && !strings.HasSuffix(siteName, "_Disk") {
+		siteName += "_Disk"
 	}
 	response := utils.FetchResponse(furl, "")
 	if response.Error == nil {
@@ -43,10 +77,47 @@ func datasetsAtSite(siteName string) []string {
 			for _, item := range blocks {
 				brec := item.(map[string]interface{})
 				dataset := strings.Split(brec["name"].(string), "#")[0]
-				out = append(out, dataset)
+				bytes := brec["bytes"].(float64)
+				val, ok := rdict[dataset]
+				if ok {
+					rdict[dataset] = bytes + val.(float64)
+				} else {
+					rdict[dataset] = bytes
+				}
 			}
 		}
-		return utils.List2Set(out)
 	}
-	return out
+	return rdict
+}
+
+// helper function to find all dataset at a given tier-site
+func datasetsAtSite(siteName, tstamp string) []string {
+	api := "blockreplicasummary"
+	if strings.HasPrefix(siteName, "T1_") && !strings.HasSuffix(siteName, "_Disk") {
+		siteName += "_Disk"
+	}
+	furl := fmt.Sprintf("%s/%s?node=%s&create_since=%d", phedexUrl(), api, siteName, utils.UnixTime(tstamp))
+	if utils.VERBOSE > 1 {
+		fmt.Println("furl", furl)
+	}
+	response := utils.FetchResponse(furl, "")
+	// use a map to collect dataset names as keys
+	ddict := make(Record)
+	if response.Error == nil {
+		records := loadPhedexData(furl, response.Data)
+		for _, rec := range records {
+			val := rec["phedex"].(map[string]interface{})
+			blocks := val["block"].([]interface{})
+			for _, item := range blocks {
+				brec := item.(map[string]interface{})
+				dataset := strings.Split(brec["name"].(string), "#")[0]
+				if datasetNameOk(dataset) {
+					ddict[dataset] = struct{}{}
+				}
+			}
+		}
+		// return map keys, they're unique already
+		return utils.MapKeys(ddict)
+	}
+	return []string{}
 }
