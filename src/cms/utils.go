@@ -137,9 +137,16 @@ func updateBreakdown(breakdown string, rec Record, data []Record) Record {
 		return rec
 	} else if breakdown == "dataset" {
 		for _, idict := range data {
-			dataset := idict["dataset"].(string)
+			dataset := strings.Split(idict["name"].(string), "#")[0]
 			size := idict["size"].(float64)
 			rec[dataset] = size
+		}
+		return rec
+	} else if breakdown == "block" {
+		for _, idict := range data {
+			block := idict["name"].(string)
+			size := idict["size"].(float64)
+			rec[block] = size
 		}
 		return rec
 	} else if breakdown == "" {

@@ -9,6 +9,7 @@ package cms
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"utils"
 )
 
@@ -27,6 +28,28 @@ func loadDBSData(furl string, data []byte) []Record {
 }
 
 // DBS helper function to get dataset info from blocksummaries DBS API
+func blockInfo(block string, ch chan Record) {
+	api := "blocksummaries"
+	furl := fmt.Sprintf("%s/%s/?block_name=%s", dbsUrl(), api, url.QueryEscape(block))
+	response := utils.FetchResponse(furl, "")
+	size := 0.0
+	if response.Error == nil {
+		records := loadDBSData(furl, response.Data)
+		if utils.VERBOSE > 1 {
+			fmt.Println("furl", furl, records)
+		}
+		for _, rec := range records {
+			size += rec["file_size"].(float64)
+		}
+	}
+	rec := make(Record)
+	rec["name"] = block
+	rec["size"] = size
+	rec["tier"] = utils.DataTier(block)
+	ch <- rec
+}
+
+// DBS helper function to get dataset info from blocksummaries DBS API
 func datasetInfo(dataset string, ch chan Record) {
 	api := "blocksummaries"
 	furl := fmt.Sprintf("%s/%s/?dataset=%s", dbsUrl(), api, dataset)
@@ -42,7 +65,7 @@ func datasetInfo(dataset string, ch chan Record) {
 		}
 	}
 	rec := make(Record)
-	rec["dataset"] = dataset
+	rec["name"] = dataset
 	rec["size"] = size
 	rec["tier"] = utils.DataTier(dataset)
 	ch <- rec

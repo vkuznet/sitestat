@@ -90,8 +90,8 @@ func datasetsDictAtSite(siteName, tstamp string) Record {
 	return rdict
 }
 
-// helper function to find all dataset at a given tier-site
-func datasetsAtSite(siteName, tstamp string) []string {
+// helper function to get site content. Return either list of blocks or datasets on site.
+func siteContent(siteName, tstamp, recType string) []string {
 	api := "blockreplicasummary"
 	if strings.HasPrefix(siteName, "T1_") && !strings.HasSuffix(siteName, "_Disk") {
 		siteName += "_Disk"
@@ -110,9 +110,14 @@ func datasetsAtSite(siteName, tstamp string) []string {
 			blocks := val["block"].([]interface{})
 			for _, item := range blocks {
 				brec := item.(map[string]interface{})
-				dataset := strings.Split(brec["name"].(string), "#")[0]
-				if datasetNameOk(dataset) {
-					ddict[dataset] = struct{}{}
+				blk := brec["name"].(string)
+				if recType == "block" {
+					ddict[blk] = struct{}{}
+				} else { // look-up dataset name
+					dataset := strings.Split(blk, "#")[0]
+					if datasetNameOk(dataset) {
+						ddict[dataset] = struct{}{}
+					}
 				}
 			}
 		}

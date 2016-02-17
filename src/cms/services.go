@@ -18,6 +18,9 @@ func sitedbUrl() string {
 func popdbUrl() string {
 	return "https://cmsweb.cern.ch/popdb/popularity"
 }
+func victordbUrl() string {
+	return "https://cmsweb.cern.ch/popdb/victorinterface"
+}
 
 // main record we work with
 type Record map[string]interface{}

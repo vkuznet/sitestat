@@ -17,6 +17,8 @@ func main() {
 	flag.StringVar(&tier, "tier", "", "Look-up specific data-tier")
 	var metric string
 	flag.StringVar(&metric, "metric", "NACC", "Popularity DB metric (NACC, TOTCPU, NUSERS)")
+	var blkinfo bool
+	flag.BoolVar(&blkinfo, "blkinfo", false, "Use block information for finding statistics, by default use dataset info")
 	var dbsinfo bool
 	flag.BoolVar(&dbsinfo, "dbsinfo", false, "Use DBS to collect dataset information, default use PhEDEx")
 	var breakdown string
@@ -33,5 +35,6 @@ func main() {
 	utils.VERBOSE = verbose
 	utils.PROFILE = profile
 	cms.DBSINFO = dbsinfo
+	cms.BLKINFO = blkinfo
 	cms.Process(metric, site, trange, tier, breakdown, bins, format)
 }

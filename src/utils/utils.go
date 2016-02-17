@@ -51,8 +51,9 @@ func TestBreakdown(bdown string) {
 	}
 }
 
-// helper function to extract data tier from dataset name
-func DataTier(dataset string) string {
+// helper function to extract data tier from dataset or block name
+func DataTier(name string) string {
+	dataset := strings.Split(name, "#")[0]
 	dparts := strings.Split(dataset, "/")
 	return dparts[len(dparts)-1]
 }

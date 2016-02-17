@@ -15,6 +15,42 @@ import (
 
 // helper function to load PopDB data stream
 // if data tier is given we only filter datasets with given tier
+func loadVictorDBData(furl string, data []byte, site, tier string) []Record {
+	var out []Record
+	var rec Record
+	err := json.Unmarshal(data, &rec)
+	if err != nil {
+		if utils.VERBOSE > 0 {
+			msg := fmt.Sprintf("PopDB unable to unmarshal the data, furl=%s, data=%s, error=%v", furl, string(data), err)
+			fmt.Println(msg)
+		}
+		return out
+	}
+	val := rec[site]
+	if val == nil {
+		return out
+	}
+	values := val.(map[string]interface{})
+	for blk, idict := range values {
+		rec := idict.(map[string]interface{})
+		rec["name"] = blk
+		dataset := strings.Split(blk, "#")[0]
+		dataTier := utils.DataTier(dataset)
+		keep := true
+		if tier != "" {
+			if dataTier != tier {
+				keep = false
+			}
+		}
+		if keep {
+			out = append(out, rec)
+		}
+	}
+	return out
+}
+
+// helper function to load PopDB data stream
+// if data tier is given we only filter datasets with given tier
 func loadPopDBData(furl string, data []byte, tier string) []Record {
 	var out []Record
 	var rec Record
@@ -28,9 +64,9 @@ func loadPopDBData(furl string, data []byte, tier string) []Record {
 	}
 	values := rec["DATA"].([]interface{})
 	for _, item := range values {
-		row := make(Record)
 		rec := item.(map[string]interface{})
 		dataset := rec["COLLNAME"].(string)
+		rec["name"] = dataset
 		dataTier := utils.DataTier(dataset)
 		keep := true
 		if tier != "" {
@@ -39,10 +75,7 @@ func loadPopDBData(furl string, data []byte, tier string) []Record {
 			}
 		}
 		if keep {
-			for k, v := range item.(map[string]interface{}) {
-				row[k] = v
-			}
-			out = append(out, row)
+			out = append(out, rec)
 		}
 	}
 	return out
@@ -53,6 +86,7 @@ func popDBtstamp(ts string) string {
 	return fmt.Sprintf("%s-%s-%s", ts[0:4], ts[4:6], ts[6:8])
 }
 
+// helper function to collect dataset usage from popularity DB
 func datasetStats(siteName string, tstamps []string, tier string) []Record {
 	var out []Record
 	api := "DSStatInTimeWindow"
@@ -66,6 +100,25 @@ func datasetStats(siteName string, tstamps []string, tier string) []Record {
 	response := utils.FetchResponse(furl, "")
 	if response.Error == nil {
 		records := loadPopDBData(furl, response.Data, tier)
+		return records
+	}
+	return out
+}
+
+// helper function to collect info about block usage from victor DB
+func blockStats(siteName string, tstamps []string, tier string) []Record {
+	var out []Record
+	api := "accessedBlocksStat"
+	tstart := popDBtstamp(tstamps[0])
+	tstop := popDBtstamp(tstamps[len(tstamps)-1])
+	siteName = strings.Replace(siteName, "_Disk", "", 1)
+	furl := fmt.Sprintf("%s/%s/?sitename=%s&tstart=%s&tstop=%s", victordbUrl(), api, siteName, tstart, tstop)
+	if utils.VERBOSE > 1 {
+		fmt.Println("furl", furl)
+	}
+	response := utils.FetchResponse(furl, "")
+	if response.Error == nil {
+		records := loadVictorDBData(furl, response.Data, siteName, tier)
 		return records
 	}
 	return out

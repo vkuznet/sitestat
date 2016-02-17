@@ -11,12 +11,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 	"utils"
 )
 
 // global variables
-var DBSINFO bool
+var DBSINFO, BLKINFO bool
 
 // exported function which process user request
 func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string) {
@@ -91,26 +92,31 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string
 
 // helper function to collect popularity results and merge them into bins of given metric
 // with the help of updateDict function
-func popdb2Bins(metric string, bins []int, records []Record, siteDatasets *[]string) BinRecord {
-	var popdbDatasets []string
+func popdb2Bins(metric string, bins []int, records []Record, siteName string, tstamps []string) BinRecord {
+	var popdbNames []string
 	rdict := make(BinRecord)
 	for _, bin := range bins {
 		rdict[bin] = []string{} // init all bins
 	}
-	for _, rec := range records { // loop over popularity records
+	recType := "dataset"            // type of record we'll process
+	for idx, rec := range records { // loop over popularity records
 		mval := int(rec[metric].(float64))
-		dataset := rec["COLLNAME"].(string)
-		popdbDatasets = append(popdbDatasets, dataset)
-		updateDict(bins, rdict, mval, dataset)
+		name := rec["name"].(string)
+		if idx == 0 && strings.Contains(name, "#") {
+			recType = "block"
+		}
+		popdbNames = append(popdbNames, name)
+		updateDict(bins, rdict, mval, name)
 	}
-	// loop over site datasets and collect zero bin for given metric
-	var zeroMetricDatasets []string
-	for _, dataset := range *siteDatasets {
-		if !utils.InList(dataset, popdbDatasets) {
-			zeroMetricDatasets = append(zeroMetricDatasets, dataset)
+	// loop over site content and collect zero bin for given metric
+	siteNames := siteContent(siteName, tstamps[0], recType)
+	var zeroMetricNames []string
+	for _, name := range siteNames {
+		if !utils.InList(name, popdbNames) {
+			zeroMetricNames = append(zeroMetricNames, name)
 		}
 	}
-	rdict[0] = zeroMetricDatasets
+	rdict[0] = zeroMetricNames
 	for _, bin := range bins { // make sure that we have unique list of datasets in every bin
 		arr := rdict[bin].([]string)
 		rdict[bin] = utils.List2Set(arr)
@@ -125,22 +131,26 @@ type BinStruct struct {
 }
 
 // helper function to update given bin
-func updateBin(bin int, site string, datasets []string, tstamp, breakdown string, ch chan BinStruct) {
+func updateBin(bin int, site string, names []string, tstamp, breakdown string, ch chan BinStruct) {
 	newSize := 0.0
 	bdict := make(Record)
-	for cdx, chunk := range utils.MakeChunks(datasets, 100) {
+	for cdx, chunk := range utils.MakeChunks(names, 100) {
 		if utils.VERBOSE == 1 {
-			fmt.Printf("process bin=%d, chunk=%d, %d datasets\n", bin, cdx, len(chunk))
+			fmt.Printf("process bin=%d, chunk=%d, %d records\n", bin, cdx, len(chunk))
 		}
 		if utils.VERBOSE == 2 {
 			fmt.Println("process chunk", chunk)
 		}
 		dch := make(chan Record)
-		for _, dataset := range chunk {
-			if DBSINFO {
-				go datasetInfo(dataset, dch) // DBS call
+		for _, name := range chunk {
+			if BLKINFO {
+				go blockInfo(name, dch) // DBS call
 			} else {
-				go datasetInfoAtSite(dataset, site, tstamp, dch) // PhEDEx call
+				if DBSINFO {
+					go datasetInfo(name, dch) // DBS call
+				} else {
+					go datasetInfoAtSite(name, site, tstamp, dch) // PhEDEx call
+				}
 			}
 		}
 		var out []Record
@@ -171,11 +181,11 @@ func bins2size(site string, brecord BinRecord, tstamp, breakdown string) (BinRec
 	for bin, val := range brecord { // loop over record with bins
 		rdict[bin] = 0.0
 		bdict[bin] = make(Record)
-		datasets := val.([]string)
+		names := val.([]string)
 		if utils.VERBOSE == 1 {
-			fmt.Printf("%s, bin=%s, %d datasets", site, bin, len(datasets))
+			fmt.Printf("%s, bin=%s, %d records", site, bin, len(names))
 		}
-		go updateBin(bin, site, datasets, tstamp, breakdown, ch)
+		go updateBin(bin, site, names, tstamp, breakdown, ch)
 	}
 	counter := 0
 	for { // collect results
@@ -199,17 +209,17 @@ func bins2size(site string, brecord BinRecord, tstamp, breakdown string) (BinRec
 func process(metric, siteName string, tstamps []string, tier, breakdown string, bins []int, ch chan Record) {
 	startTime := time.Now()
 	// get statistics from popDB for given site and time range
-	popDBrecords := datasetStats(siteName, tstamps, tier)
+	var popdbRecords []Record
+	if BLKINFO {
+		popdbRecords = blockStats(siteName, tstamps, tier)
+	} else {
+		popdbRecords = datasetStats(siteName, tstamps, tier)
+	}
 	if utils.PROFILE {
 		fmt.Println("popDBRecords", time.Now().Sub(startTime))
 	}
-	// get dataset dict on given site (from PhEDEx)
-	siteDatasets := datasetsAtSite(siteName, tstamps[0])
-	if utils.PROFILE {
-		fmt.Println("datasetsAtSite", time.Now().Sub(startTime))
-	}
 	// sort dataset results from popDB into bins by given metric
-	rdict := popdb2Bins(metric, bins, popDBrecords, &siteDatasets)
+	rdict := popdb2Bins(metric, bins, popdbRecords, siteName, tstamps)
 	if utils.PROFILE {
 		fmt.Println("popdb2Bins", time.Now().Sub(startTime))
 	}
