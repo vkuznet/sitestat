@@ -6,11 +6,15 @@ all: build
 build:
 	go clean; rm -rf pkg; go build
 
+build_all: build_osx build_linux
+
 build_osx:
-	go clean; rm -rf pkg; GOOS=darwin go build
+	go clean; rm -rf pkg sitestat_osx; GOOS=darwin go build
+	mv sitestat sitestat_osx
 
 build_linux:
-	go clean; rm -rf pkg; GOOS=linux go build
+	go clean; rm -rf pkg sitestat_linux; GOOS=linux go build
+	mv sitestat sitestat_linux
 
 install:
 	go install
