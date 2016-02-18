@@ -22,6 +22,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"time"
 	"x509proxy"
 )
@@ -86,6 +87,9 @@ func HttpClient() (client *http.Client) {
 // create global HTTP client and re-use it through the code
 var client = HttpClient()
 
+// global URL counter for profile output
+var UrlCounter uint32
+
 // ResponseType structure is what we expect to get for our URL call.
 // It contains a request URL, the data chunk and possible error from remote
 type ResponseType struct {
@@ -101,20 +105,20 @@ func Worker(in <-chan string, out chan<- ResponseType, quit <-chan bool) {
 	for {
 		select {
 		case rurl := <-in:
-			//            fmt.Println("Receive", url)
 			go Fetch(rurl, "", out)
 		case <-quit:
-			//            fmt.Println("Quit Worker")
 			return
 		default:
 			time.Sleep(time.Duration(100) * time.Millisecond)
-			//            fmt.Println("Waiting for request")
 		}
 	}
 }
 
 // Fetch data for provided URL
 func FetchResponse(rurl, args string) ResponseType {
+	if PROFILE {
+		atomic.AddUint32(&UrlCounter, 1)
+	}
 	var response ResponseType
 	response.Url = rurl
 	response.Data = []byte{}

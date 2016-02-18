@@ -21,6 +21,7 @@ var DBSINFO, BLKINFO bool
 
 // exported function which process user request
 func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string) {
+	startTime := time.Now()
 	utils.TestEnv()
 	utils.TestMetric(metric)
 	utils.TestBreakdown(breakdown)
@@ -87,6 +88,10 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string
 		}
 		fmt.Println(msg)
 		formatResults(metric, bins, out, breakdown)
+	}
+	if utils.PROFILE {
+		fmt.Printf("Processed %d urls\n", utils.UrlCounter)
+		fmt.Printf("Elapsed time %s\n", time.Since(startTime))
 	}
 }
 
@@ -216,17 +221,17 @@ func process(metric, siteName string, tstamps []string, tier, breakdown string, 
 		popdbRecords = datasetStats(siteName, tstamps, tier)
 	}
 	if utils.PROFILE {
-		fmt.Println("popDBRecords", time.Now().Sub(startTime))
+		fmt.Println("popDBRecords", time.Since(startTime))
 	}
 	// sort dataset results from popDB into bins by given metric
 	rdict := popdb2Bins(metric, bins, popdbRecords, siteName, tstamps)
 	if utils.PROFILE {
-		fmt.Println("popdb2Bins", time.Now().Sub(startTime))
+		fmt.Println("popdb2Bins", time.Since(startTime))
 	}
 	// find out size for all bins
 	results, bres := bins2size(siteName, rdict, tstamps[0], breakdown)
 	if utils.PROFILE {
-		fmt.Println("bins2size", time.Now().Sub(startTime))
+		fmt.Println("bins2size", time.Since(startTime))
 	}
 	// create return record and send it back to given channel
 	rec := make(Record)
