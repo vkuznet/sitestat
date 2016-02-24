@@ -27,6 +27,8 @@ func main() {
 	flag.StringVar(&bins, "bins", "", "Comma separated list of bin values, e.g. 0,1,2,3,4 for naccesses or 0,10,100 for tot cpu metrics")
 	var format string
 	flag.StringVar(&format, "format", "txt", "Output format type, txt or json")
+	var chunkSize int
+	flag.IntVar(&chunkSize, "chunkSize", 100, "chunkSize for processing URLs")
 	var verbose int
 	flag.IntVar(&verbose, "verbose", 0, "Verbose level, support 0,1,2")
 	var profile bool
@@ -34,6 +36,7 @@ func main() {
 	flag.Parse()
 	utils.VERBOSE = verbose
 	utils.PROFILE = profile
+	utils.CHUNKSIZE = chunkSize
 	cms.DBSINFO = dbsinfo
 	cms.BLKINFO = blkinfo
 	cms.Process(metric, site, trange, tier, breakdown, bins, format)
