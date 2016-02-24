@@ -139,7 +139,7 @@ type BinStruct struct {
 func updateBin(bin int, site string, names []string, tstamp, breakdown string, ch chan BinStruct) {
 	newSize := 0.0
 	bdict := make(Record)
-	for cdx, chunk := range utils.MakeChunks(names, 100) {
+	for cdx, chunk := range utils.MakeChunks(names, utils.CHUNKSIZE) {
 		if utils.VERBOSE == 1 {
 			fmt.Printf("process bin=%d, chunk=%d, %d records\n", bin, cdx, len(chunk))
 		}
