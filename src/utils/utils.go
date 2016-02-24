@@ -15,9 +15,8 @@ import (
 	"time"
 )
 
-// global variable for this module which we're going to use across
-// many modules
-var VERBOSE int
+// global variable for this module which we're going to use across many modules
+var VERBOSE, CHUNKSIZE int
 var PROFILE bool
 
 // test environment
@@ -192,6 +191,10 @@ func TimeStamps(ts string) []string {
 
 // helper function to make chunks from provided list
 func MakeChunks(arr []string, size int) [][]string {
+	if size == 0 {
+		fmt.Println("WARNING: chunk size is not set, will use size 10")
+		size = 10
+	}
 	var out [][]string
 	alen := len(arr)
 	abeg := 0
