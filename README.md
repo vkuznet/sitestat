@@ -19,8 +19,12 @@ Here is example of sitestat tool usage
 Usage of ./sitestat:
   -bins string
     	Comma separated list of bin values, e.g. 0,1,2,3,4 for naccesses or 0,10,100 for tot cpu metrics
+  -blkinfo
+    	Use block information for finding statistics, by default use dataset info
   -breakdown string
     	Breakdown report into more details (tier, dataset)
+  -chunkSize int
+    	chunkSize for processing URLs (default 100)
   -dbsinfo
     	Use DBS to collect dataset information, default use PhEDEx
   -format string
