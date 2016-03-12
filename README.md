@@ -1,3 +1,8 @@
+# sitestat
+
+[![Build Status](https://travis-ci.org/vkuznet/sitestat.svg?branch=master)](https://travis-ci.org/vkuznet/sitestat)
+[![GoDoc](https://godoc.org/github.com/vkuznet/sitestat?status.svg)](https://godoc.org/github.com/vkuznet/sitestat)
+
 ### sitestat tool
 sitestat tool designed to catch statistics from various CMS sites.
 The underlying process follow these steps:
