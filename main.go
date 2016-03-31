@@ -3,9 +3,9 @@
 package main
 
 import (
-	"cms"
 	"flag"
-	"utils"
+	"github.com/vkuznet/sitestat/cms"
+	"github.com/vkuznet/sitestat/utils"
 )
 
 func main() {

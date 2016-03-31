@@ -1,16 +1,10 @@
-/*
- *
- * Author     : Valentin Kuznetsov <vkuznet AT gmail dot com>
- * Description: utils for cms package
- * Created    : Wed Feb 10 19:31:44 EST 2016
- */
 package cms
 
 import (
 	"fmt"
+	"github.com/vkuznet/sitestat/utils"
 	"sort"
 	"strings"
-	"utils"
 )
 
 func datasetNameOk(dataset string) bool {

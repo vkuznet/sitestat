@@ -1,16 +1,10 @@
-/*
- *
- * Author     : Valentin Kuznetsov <vkuznet AT gmail dot com>
- * Description: part of cms package responsible for sitedb calls
- * Created    : Wed Feb 10 19:31:44 EST 2016
- */
 package cms
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/vkuznet/sitestat/utils"
 	"strings"
-	"utils"
 )
 
 // helper function to load SiteDB data stream

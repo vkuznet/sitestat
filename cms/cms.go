@@ -1,19 +1,14 @@
-/*
- *
- * Author     : Valentin Kuznetsov <vkuznet AT gmail dot com>
- * Description: cms package which provides set of utilities to get statistics
- *				about CMS tier sites
- * Created    : Wed Feb 10 19:31:44 EST 2016
- */
+// CMS module collects various statistics from CMS data-services
+// Copyright (c) 2015-2016 - Valentin Kuznetsov <vkuznet@gmail.com>
 package cms
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/vkuznet/sitestat/utils"
 	"os"
 	"strings"
 	"time"
-	"utils"
 )
 
 // global variables
@@ -188,7 +183,7 @@ func bins2size(site string, brecord BinRecord, tstamp, breakdown string) (BinRec
 		bdict[bin] = make(Record)
 		names := val.([]string)
 		if utils.VERBOSE == 1 {
-			fmt.Printf("%s, bin=%s, %d records", site, bin, len(names))
+			fmt.Printf("%s, bin=%d, %d records\n", site, bin, len(names))
 		}
 		go updateBin(bin, site, names, tstamp, breakdown, ch)
 	}
