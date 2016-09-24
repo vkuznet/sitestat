@@ -52,7 +52,7 @@ func siteNames(site string) []string {
 			siteName := r["alias"].(string)
 			siteType := r["type"].(string)
 			if siteType == "phedex" && strings.HasPrefix(siteName, site) {
-				if strings.HasPrefix(site, "T1_") {
+				if strings.HasPrefix(siteName, "T1_") {
 					if strings.HasSuffix(siteName, "_Disk") {
 						out = append(out, siteName)
 					}
