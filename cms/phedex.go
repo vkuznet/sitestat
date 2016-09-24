@@ -31,9 +31,9 @@ func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record) {
 	if utils.VERBOSE > 1 {
 		fmt.Println("furl", furl)
 	}
-	if strings.HasPrefix(siteName, "T1_") && !strings.HasSuffix(siteName, "_Disk") {
-		siteName += "_Disk"
-	}
+	//     if strings.HasPrefix(siteName, "T1_") && !strings.HasSuffix(siteName, "_Disk") {
+	//         siteName += "_Disk"
+	//     }
 	response := utils.FetchResponse(furl, "")
 	size := 0.
 	if response.Error == nil {
