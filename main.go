@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	var pbrdb string
+	flag.StringVar(&pbrdb, "pbrdb", "", "Name of PBR db (see PhedexReplicaMonitoring project)")
 	var site string
 	flag.StringVar(&site, "site", "", "CMS site name, use T1, T2, T3 to specify all Tier sites")
 	var trange string
@@ -17,6 +19,8 @@ func main() {
 	flag.StringVar(&tier, "tier", "", "Look-up specific data-tier")
 	var metric string
 	flag.StringVar(&metric, "metric", "NACC", "Popularity DB metric (NACC, TOTCPU, NUSERS)")
+	var phgroup string
+	flag.StringVar(&phgroup, "phgroup", "AnalysisOps", "Phedex group name")
 	var blkinfo bool
 	flag.BoolVar(&blkinfo, "blkinfo", false, "Use block information for finding statistics, by default use dataset info")
 	var dbsinfo bool
@@ -39,5 +43,7 @@ func main() {
 	utils.CHUNKSIZE = chunkSize
 	cms.DBSINFO = dbsinfo
 	cms.BLKINFO = blkinfo
+	cms.PBRDB = pbrdb
+	cms.PHGROUP = phgroup
 	cms.Process(metric, site, trange, tier, breakdown, bins, format)
 }

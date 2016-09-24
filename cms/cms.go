@@ -13,6 +13,7 @@ import (
 
 // global variables
 var DBSINFO, BLKINFO bool
+var PBRDB, PHGROUP string
 
 // exported function which process user request
 func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string) {
@@ -143,13 +144,17 @@ func updateBin(bin int, site string, names []string, tstamp, breakdown string, c
 		}
 		dch := make(chan Record)
 		for _, name := range chunk {
-			if BLKINFO {
-				go blockInfo(name, dch) // DBS call
+			if PBRDB != "" {
+				go datasetInfoPBR(name, dch) // PBR DB call
 			} else {
-				if DBSINFO {
-					go datasetInfo(name, dch) // DBS call
+				if BLKINFO {
+					go blockInfo(name, dch) // DBS call
 				} else {
-					go datasetInfoAtSite(name, site, tstamp, dch) // PhEDEx call
+					if DBSINFO {
+						go datasetInfo(name, dch) // DBS call
+					} else {
+						go datasetInfoAtSite(name, site, tstamp, dch) // PhEDEx call
+					}
 				}
 			}
 		}
