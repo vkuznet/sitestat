@@ -3,8 +3,10 @@
 package cms
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/vkuznet/sitestat/utils"
 	"os"
 	"strings"
@@ -14,6 +16,7 @@ import (
 // global variables
 var DBSINFO, BLKINFO bool
 var PBRDB, PHGROUP string
+var PDB *sql.DB
 
 // exported function which process user request
 func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string) {
@@ -26,6 +29,19 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string
 		msg := fmt.Sprintf("Wrong data tier '%s'", tier)
 		fmt.Println(msg)
 		os.Exit(-1)
+	}
+	if PBRDB != "" { // we got PBR name, open DB
+		db, err := sql.Open("sqlite3", PBRDB)
+		if err != nil {
+			panic(err)
+		}
+		defer db.Close()
+		//         db.SetMaxIdleConns(100)
+		err = db.Ping()
+		if err != nil {
+			panic(err)
+		}
+		PDB = db
 	}
 	sites := siteNames(siteName)
 	bins := utils.Bins(binValues)
