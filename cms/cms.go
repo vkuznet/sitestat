@@ -96,6 +96,8 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string
 			os.Exit(-1)
 		}
 		fmt.Println(string(res))
+	} else if format == "csv" {
+		formatCSV(bins, out)
 	} else {
 		msg := fmt.Sprintf("Final results: metric %s, site, %s, time interval %s %v", metric, siteName, tstamp, tstamps)
 		if tier != "" {

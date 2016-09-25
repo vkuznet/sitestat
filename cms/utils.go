@@ -15,6 +15,24 @@ func datasetNameOk(dataset string) bool {
 	return false
 }
 
+// helper function to yield CSV format
+func formatCSV(bins []int, records []Record) {
+	for _, rec := range records {
+		for site, vals := range rec {
+			out := site
+			rec := vals.(Record)
+			results := rec["results"].(BinRecord)
+			ikeys := utils.MapIntKeys(results)
+			sort.Ints(ikeys)
+			for _, bin := range ikeys {
+				size := results[bin].(float64)
+				out += fmt.Sprintf(",%f", size)
+			}
+			fmt.Println(out)
+		}
+	}
+}
+
 // helper function to format aggregated results
 func formatResults(metric string, bins []int, records []Record, breakdown string) {
 	for _, rec := range records {
