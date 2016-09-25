@@ -17,6 +17,7 @@ import (
 var DBSINFO, BLKINFO bool
 var PBRDB, PHGROUP string
 var PDB *sql.DB
+var PBRMAP map[string]float64
 
 // exported function which process user request
 func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string) {
@@ -42,6 +43,11 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string
 			panic(err)
 		}
 		PDB = db
+		var pbr PBR
+		PBRMAP = pbr.Map()
+		if utils.VERBOSE > 0 {
+			fmt.Println("Loaded PBRMAP", len(PBRMAP), "items")
+		}
 	}
 	sites := siteNames(siteName)
 	bins := utils.Bins(binValues)
