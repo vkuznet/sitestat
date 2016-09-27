@@ -17,7 +17,7 @@ import (
 var DBSINFO, BLKINFO bool
 var PBRDB, PHGROUP string
 var PDB *sql.DB
-var PBRMAP map[string]float64
+var PBRMAP, DBSDATASETS map[string]float64
 
 // exported function which process user request
 func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string) {
@@ -115,8 +115,32 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string
 	}
 }
 
+// helper function to collect old datasets based on zero bin dataset list and given threshold
+func oldDatasets(datasets []string, thr float64) []string {
+	fmt.Println("oldDatasets", len(datasets), thr)
+	if DBSDATASETS == nil {
+		DBSDATASETS = datasetsCreationTimes(datasets)
+	}
+	var out []string
+	for _, name := range datasets {
+		if DBSDATASETS[name] < thr {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// Pseudo code
+// for timewindow in (3months, 6months, 12months):
+//  if dataset.naccess(tstart=now-timewindow, tstop=now)==0:
+//    if dataset.timecreate < now-timewindow:
+//       histogram[0_old] = dataset.weightedsize
+//    else if dataset.timecreate >= now-timewindow:
+//  	 histogram[0_new] = dataset.weightedsize
+
 // helper function to collect popularity results and merge them into bins of given metric
-// with the help of updateDict function
+// with the help of updateDict function.
+// return rdict which is a dictionary of bins and corresponding dataset names
 func popdb2Bins(metric string, bins []int, records []Record, siteName string, tstamps []string) BinRecord {
 	var popdbNames []string
 	rdict := make(BinRecord)
@@ -146,6 +170,16 @@ func popdb2Bins(metric string, bins []int, records []Record, siteName string, ts
 		arr := rdict[bin].([]string)
 		rdict[bin] = utils.List2Set(arr)
 	}
+	// TODO: fetch old datasets, those who are in zero bin but their creation time
+	// is older then interval we're intersting.
+	thr := float64(utils.UnixTime(tstamps[0]))
+	olds := oldDatasets(rdict[0].([]string), thr)
+	rdict[-1] = olds
+	newd := utils.Substruct(rdict[0].([]string), rdict[-1].([]string))
+	if utils.VERBOSE > 0 {
+		fmt.Println("Bin-zero division, bin0-old", len(olds), "bin0-new", len(newd))
+	}
+	rdict[0] = newd
 	return rdict
 }
 
@@ -168,17 +202,13 @@ func updateBin(bin int, site string, names []string, tstamp, breakdown string, c
 		}
 		dch := make(chan Record)
 		for _, name := range chunk {
-			if PBRDB != "" {
-				go datasetInfoPBR(name, dch) // PBR DB call
+			if BLKINFO {
+				go blockInfo(name, dch) // DBS call
 			} else {
-				if BLKINFO {
-					go blockInfo(name, dch) // DBS call
+				if DBSINFO {
+					go datasetInfo(name, dch) // DBS call
 				} else {
-					if DBSINFO {
-						go datasetInfo(name, dch) // DBS call
-					} else {
-						go datasetInfoAtSite(name, site, tstamp, dch) // PhEDEx call
-					}
+					go datasetInfoAtSite(name, site, tstamp, dch) // PhEDEx call
 				}
 			}
 		}
