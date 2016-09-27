@@ -65,6 +65,17 @@ func InList(a string, list []string) bool {
 	return false
 }
 
+// helper function to substruct list2 from list1
+func Substruct(list1, list2 []string) []string {
+	var out []string
+	for _, v := range list1 {
+		if !InList(v, list2) {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
 // helper function to return keys from a map
 func MapKeys(rec map[string]interface{}) []string {
 	keys := make([]string, 0, len(rec))
@@ -203,7 +214,8 @@ func MakeChunks(arr []string, size int) [][]string {
 		}
 	}
 	if abeg < alen {
-		out = append(out, arr[abeg:alen-1])
+		//         out = append(out, arr[abeg:alen-1])
+		out = append(out, arr[abeg:alen])
 	}
 	return out
 }
