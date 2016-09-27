@@ -55,12 +55,17 @@ func datasetInfo(dataset string, ch chan Record) {
 			fmt.Println("furl", furl, records)
 		}
 		for _, rec := range records {
-			size += rec["file_size"].(float64)
+			size = rec["file_size"].(float64)
+			break
 		}
 	}
 	rec := make(Record)
 	rec["name"] = dataset
-	rec["size"] = size
+	if PBRDB != "" { // take dataset size from PBR DB, instead of DBS
+		rec["size"] = PBRMAP[dataset]
+	} else {
+		rec["size"] = size
+	}
 	rec["tier"] = utils.DataTier(dataset)
 	ch <- rec
 }
@@ -83,4 +88,36 @@ func dataTiers() []string {
 	}
 	return utils.List2Set(out)
 
+}
+
+// helper function which convert string list into comma separate string values
+func list2comma(chunk []string) string {
+	var out string
+	for _, v := range chunk {
+		out += fmt.Sprintf("\"%s\",", v)
+	}
+	return out[:len(out)-1]
+}
+
+// helper function to obtain datasets creation times for given list of datasets
+func datasetsCreationTimes(datasets []string) map[string]float64 {
+	rdict := make(map[string]float64)
+	api := "datasetlist"
+	furl := fmt.Sprintf("%s/%s", dbsUrl(), api)
+	for _, chunk := range utils.MakeChunks(datasets, 1000) {
+		args := fmt.Sprintf("{\"detail\":true,\"dataset\":[%s]}", list2comma(chunk))
+		response := utils.FetchResponse(furl, args)
+		if response.Error == nil {
+			records := loadDBSData(furl, response.Data)
+			if utils.VERBOSE > 1 {
+				fmt.Println("furl", furl, records)
+			}
+			for _, rec := range records {
+				name := rec["dataset"].(string)
+				ctime := rec["creation_date"].(float64)
+				rdict[name] = ctime
+			}
+		}
+	}
+	return rdict
 }
