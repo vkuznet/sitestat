@@ -29,6 +29,7 @@ export SPARK_HOME=/usr/lib/spark
 export PYTHONUNBUFFERED=1
 export JAVA_JDK_ROOT
 export JAVA_HOME=$JAVA_JDK_ROOT
+export PBR_CONFIG=$PHEDEXREPLICAMONITORING_ROOT/etc
 
 # kerberos
 export PRMKEYTAB=/data/wma/PhedexReplicaMonitoring/prm.keytab
