@@ -29,7 +29,7 @@ def create(dbname, idir):
     conn = sqlite3.connect(dbname)
     cur = conn.cursor()
     # Disk,/ZeroBias6/Run2016B-LumiPixelsMinBias-PromptReco-v2/ALCARECO,caf-lumi,4.4867629926E10
-    cur.execute("CREATE TABLE avg (node text, dataset text, phgroup text, size real)")
+    cur.execute("CREATE TABLE avg (node text, nodetier text, dataset text, phgroup text, size real)")
     cur.execute("create index idx ON avg(dataset)")
     for fname in os.listdir(idir):
         if  not fname.startswith('part'):
@@ -38,7 +38,7 @@ def create(dbname, idir):
         with open(os.path.join(idir, fname)) as istream:
             for line in istream.readlines():
                 vals = line.replace('\n', '').split(',')
-                stm = "INSERT INTO avg VALUES ('{}','{}','{}',{})".format(*vals)
+                stm = "INSERT INTO avg VALUES ('{}','{}','{}','{}',{})".format(*vals)
                 cur.execute(stm)
     conn.commit()
     conn.close()
