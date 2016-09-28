@@ -36,6 +36,10 @@ Usage of ./sitestat:
     	Output format type, txt or json (default "txt")
   -metric string
     	Popularity DB metric (NACC, TOTCPU, NUSERS) (default "NACC")
+  -pbrdb string
+    	Name of PBR db (see PhedexReplicaMonitoring project)
+  -phgroup string
+    	Phedex group name (default "AnalysisOps")
   -profile
     	profile code
   -site string
@@ -80,3 +84,15 @@ sitestat -site T2_XX_Abc -trange 1m -dbsinfo
 # return information in json data format
 sitestat -site T2_XX_Abc -trange 1m -format json
 ```
+
+### Tools
+The tools directory contains useful scripts to use
+[PhedexReplicaMonitoring](https://github.com/vkuznet/PhedexReplicaMonitoring)
+which allows to obtained weighted datasets size on sites from PhEDEx DB by
+running pbr script from PhedexReplicaMonitoring repository.
+
+- pbr_avg.sh script can be used to submit Spark job to calculate average
+  size of datasets
+- pbr_db.py script can be used to convert HDFS output from pbr_avg.sh
+  and convert it into SQLiteDB. The later can be used by sitestat tool
+- plot.R an R script to produce size vs bins (#accesses) plot.
