@@ -117,7 +117,6 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string
 
 // helper function to collect old datasets based on zero bin dataset list and given threshold
 func oldDatasets(datasets []string, thr float64) []string {
-	fmt.Println("oldDatasets", len(datasets), thr)
 	if DBSDATASETS == nil {
 		DBSDATASETS = datasetsCreationTimes(datasets)
 	}
