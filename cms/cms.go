@@ -165,11 +165,8 @@ func popdb2Bins(metric string, bins []int, records []Record, siteName string, ts
 		}
 	}
 	rdict[0] = zeroMetricNames
-	for _, bin := range bins { // make sure that we have unique list of datasets in every bin
-		arr := rdict[bin].([]string)
-		rdict[bin] = utils.List2Set(arr)
-	}
-	// TODO: fetch old datasets, those who are in zero bin but their creation time
+
+	// fetch old datasets, those who are in zero bin but their creation time
 	// is older then interval we're intersting.
 	thr := float64(utils.UnixTime(tstamps[0]))
 	olds := oldDatasets(rdict[0].([]string), thr)
@@ -179,6 +176,18 @@ func popdb2Bins(metric string, bins []int, records []Record, siteName string, ts
 		fmt.Println("Bin-zero division, bin0-old", len(olds), "bin0-new", len(newd))
 	}
 	rdict[0] = newd
+
+	// make sure that we have unique list of datasets in every bin
+	allbins := []int{-1, 0}
+	for _, bin := range bins {
+		allbins = append(allbins, bin)
+	}
+	for _, bin := range allbins {
+		arr := rdict[bin].([]string)
+		rdict[bin] = utils.List2Set(arr)
+		val := rdict[bin]
+		fmt.Println(siteName, "bin ", bin, " contains ", len(val.([]string)))
+	}
 	return rdict
 }
 
