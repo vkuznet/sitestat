@@ -13,8 +13,9 @@ func loadPhedexData(furl string, data []byte) []Record {
 	var rec Record
 	err := json.Unmarshal(data, &rec)
 	if err != nil {
-		msg := fmt.Sprintf("unable to unmarshal the data into record, furl=%s, data=%s, error=%v", furl, string(data), err)
-		panic(msg)
+		//         msg := fmt.Sprintf("unable to unmarshal the data into record, furl=%s, data=%s, error=%v", furl, string(data), err)
+		//         panic(msg)
+		return out
 	}
 	out = append(out, rec)
 	return out
