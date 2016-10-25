@@ -40,10 +40,13 @@ totals=c(sum(df$old), sum(df$new), sum(df$b1), sum(df$b2), sum(df$b3), sum(df$b4
 x=c(-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
 tdf=data.frame(x, totals)
 
-tbytes=1024*1024*1024*1024
-tdfnorm=data.frame(bins=x, size=tdf$totals/tbytes)
+#tbytes=1024*1024*1024*1024
+#tdfnorm=data.frame(bins=x, size=tdf$totals/tbytes)
+pbytes=1024*1024*1024*1024*1024
+tdfnorm=data.frame(bins=x, size=tdf$totals/pbytes)
 print(tdfnorm)
 
 pdf(out)
-ggplot(tdfnorm, aes(x=bins, y=size)) + geom_bar(position="dodge", stat="identity") + ggtitle("Total size at T1") + xlab("Number of accesses") + ylab("Total size in TB")
+#ggplot(tdfnorm, aes(x=bins, y=size)) + geom_bar(position="dodge", stat="identity") + ggtitle("Total size at T1") + xlab("Number of accesses") + ylab("Total size in TB")
+ggplot(tdfnorm, aes(x=bins, y=size)) + geom_bar(position="dodge", stat="identity") + ggtitle("Total size at T1") + xlab("Number of accesses") + ylab("Total size in PB")
 dev.off()
