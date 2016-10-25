@@ -44,7 +44,45 @@ func blockInfo(block string, ch chan Record) {
 }
 
 // DBS helper function to get dataset info from blocksummaries DBS API
+func datasetSize(dataset string) float64 {
+	api := "blocksummaries"
+	furl := fmt.Sprintf("%s/%s/?dataset=%s", dbsUrl(), api, dataset)
+	response := utils.FetchResponse(furl, "")
+	size := 0.0
+	if response.Error == nil {
+		records := loadDBSData(furl, response.Data)
+		if utils.VERBOSE > 1 {
+			fmt.Println("furl", furl, records)
+		}
+		for _, rec := range records {
+			size = rec["file_size"].(float64)
+			break
+		}
+	}
+	return size
+}
+
+// DBS helper function to get dataset info from blocksummaries DBS API
 func datasetInfo(dataset string, ch chan Record) {
+	size := 0.0
+	rec := make(Record)
+	rec["name"] = dataset
+	if PBRDB != "" { // take dataset size from PBR DB, instead of DBS
+		size = PBRMAP[dataset]
+		if size == 0 {
+			size = datasetSize(dataset)
+		}
+
+	} else {
+		size = datasetSize(dataset)
+	}
+	rec["size"] = size
+	rec["tier"] = utils.DataTier(dataset)
+	ch <- rec
+}
+
+// DBS helper function to get dataset info from blocksummaries DBS API
+func datasetInfoOrig(dataset string, ch chan Record) {
 	api := "blocksummaries"
 	furl := fmt.Sprintf("%s/%s/?dataset=%s", dbsUrl(), api, dataset)
 	response := utils.FetchResponse(furl, "")
