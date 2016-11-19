@@ -30,7 +30,8 @@ def stats(fname, date, nbins=15):
     df = pd.read_csv(fname, dtype=dtype)
     print("Input df: nrows=%s, ncols=%s" % (df.shape[0], df.shape[1]))
     df=df[df['site'].map(lambda x: str(x).startswith('T1') or str(x).startswith('T2'))]
-    print("Sites: %s" % sorted(list(df['site'].unique())))
+    sites = sorted(list(df['site'].unique()))
+    print("Sites: %s" % ', '.join(sites))
     bins = {}
     for ibin in range(nbins):
         if  ibin == nbins-1:
