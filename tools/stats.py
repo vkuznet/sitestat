@@ -28,8 +28,9 @@ class OptionParser():
 def stats(fname, date, nbins=15):
     dtype = {'dataset': str, 'date': float, 'phedex_size': float, 'site':str, 'size':float, 'evt':int, 'naccess':int}
     df = pd.read_csv(fname, dtype=dtype)
-    print("Input df", df.columns, df.shape)
+    print("Input df: nrows=%s, ncols=%s" % (df.shape[0], df.shape[1]))
     df=df[df['site'].map(lambda x: str(x).startswith('T1') or str(x).startswith('T2'))]
+    print("Sites: %s" % sorted(list(df['site'].unique())))
     bins = {}
     for ibin in range(nbins):
         if  ibin == nbins-1:
