@@ -5,7 +5,8 @@ The former contains information about dataset and their size and number of
 events. The Phedex contains information about dataset replicas, while
 PopDB provides information about number of accesses to datasets.
 Below we outline procedure how to find summary information about
-T1+T2 sites, i.e. total size of datasets on them.
+T1+T2 sites, i.e. total size of datasets on them, e.g. see
+![T1+T2 site stats](https://github.com/vkuznet/sitestat/blob/master/tools/T1_T2_stats.png)
 
 ## Step by step instructions
 
