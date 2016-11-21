@@ -30,6 +30,7 @@ class OptionParser(object):
 def create(idir, fout, storage, phgroup):
     "Creation function"
     headers = ['node', 'kind', 'tier', 'dataset', 'phgroup', 'phedex_size']
+    groups = [g.lower() for g in phgroup.split(',')]
     with open(fout, 'w') as ostream:
         ostream.write('dataset,site,phedex_size\n')
         for fname in os.listdir(idir):
@@ -41,7 +42,7 @@ def create(idir, fout, storage, phgroup):
                     vals = line.replace('\n', '').split(',')
                     row = dict(zip(headers, vals))
                     if  row['kind'].lower() == storage.lower() and \
-                        row['phgroup'].lower() == phgroup.lower():
+                        row['phgroup'].lower() in groups:
                         line = '%s,%s,%s' \
                                 % (row['dataset'],row['node'],row['phedex_size'])
                         ostream.write(line+'\n')
