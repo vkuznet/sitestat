@@ -30,11 +30,11 @@ class OptionParser():
             dest="verbose", default=False, help="verbose output")
 
 def merge(popdb, dbs, phedex, fout):
-    dbs_df=pd.read_csv(dbs).sort(['dataset'])
+    dbs_df=pd.read_csv(dbs).sort_values('dataset')
     print(dbs_df.head())
-    pop_df=pd.read_csv(popdb).sort(['dataset'])
+    pop_df=pd.read_csv(popdb).sort_values('dataset')
     print(pop_df.head())
-    phe_df=pd.read_csv(phedex).sort(['dataset'])
+    phe_df=pd.read_csv(phedex).sort_values('dataset')
     print(phe_df.head())
     ndf=pd.merge(dbs_df, pop_df, on='dataset', how='outer')
     all_df=pd.merge(phe_df, ndf, on='dataset', how='outer')
