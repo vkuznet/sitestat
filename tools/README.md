@@ -14,7 +14,7 @@ First, we need to call popDB to get information about datasets' accesses
 for given period of time:
 
 ```
-  popdb.py --times=20160724-20161024 > popdb_20160724_20161024.csv
+popdb.py --times=20160724-20161024 > popdb_20160724_20161024.csv
 ```
 
 Then, we extract dataset information, such as their size and creation
@@ -22,9 +22,10 @@ time from DBS data stored on HDFS. This step should be done on a node
 which can submit a spark job:
 
 ```
-  dbs_spark --no-log4j 2>&1 1>& log
-  cat log | > dbs_datasets.csv
+dbs_spark --no-log4j 2>&1 1>& log
 ```
+
+Once it finish you'll get `dbs_datasets.csv` in your current directory.
 
 To get information about dataset replicas we need to use pbr
 (Phedex Block Replica) script and run it again on a spark:
@@ -44,7 +45,7 @@ hadoop fs -get /cms/phedex-monitoring-test/SPARK_DIR ./20160724_20161024
 and then merge spark files into single CSV one:
 
 ```
-make_pbr_csv.py --idir=20160724_20161024 --fout=pbr_20160724_20161024.csv
+make_pbr_csv.py --idir=20160724_20161024 --fout=pbr_20160724_20161024.csv --group=DataOps,AnalysisOps
 ```
 
 Finally, we merge data from PopDB, DBS and Phedex system into a single
