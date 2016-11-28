@@ -14,18 +14,16 @@ fi
 # load PhedexReplicaMonitoring environment
 source /data/srv/current/apps/PhedexReplicaMonitoring/etc/profile.d/init.sh
 
-#script=/data/wma/PhedexReplicaMonitoring/src/scripts/pbr.sh
 script=$PHEDEXREPLICAMONITORING_ROOT/bin/pbr.sh
 fromdate=$1 # YYYY-MM-DD
 todate=$2 # YYYY-MM-DD
-hdir=hdfs:///cms/phedex-monitoring-test
-keys=node_kind,node_tier,dataset_name,br_user_group
+hdir=hdfs:///cms/phedex-monitoring-test/$1_$2
+hadoop fs -rm -f $hdir
+hadoop fs -mkdir $hdir
+keys=node_name,node_kind,node_tier,dataset_name,br_user_group
 results=br_node_bytes
 
 export SPARK_HOME=/usr/lib/spark
-#export PATH=$PWD:$PATH
-#echo "`type pyspark`"
-
 export PYTHONUNBUFFERED=1
 export JAVA_JDK_ROOT
 export JAVA_HOME=$JAVA_JDK_ROOT
@@ -51,6 +49,6 @@ wroot=`python -c "import ReplicaMonitoring; print '/'.join(ReplicaMonitoring.__f
 echo "wroot=$wroot"
 export PYTHONPATH=/usr/lib/spark/python:$PYTHONPATH
 
-cmd="$script --yarn --fromdate $fromdate --todate $todate --keys $keys --results $results --aggregations avg-day --fout $hdir"
+cmd="$script --yarn --fromdate $fromdate --todate $todate --keys $keys --results $results --aggregations avg-day --fout $hdir/output"
 echo "$cmd"
 $cmd
