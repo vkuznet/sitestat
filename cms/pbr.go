@@ -9,14 +9,19 @@ package cms
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/vkuznet/sitestat/utils"
+	//     "github.com/vkuznet/sitestat/utils"
 )
 
-type PBR struct {
-	records map[string]float64
+type DatasetAttrs struct {
+	node string
+	size float64
 }
 
-func (p *PBR) Map() map[string]float64 {
+type PBR struct {
+	records map[string][]DatasetAttrs
+}
+
+func (p *PBR) Map() map[string][]DatasetAttrs {
 	if p.records != nil {
 		return p.records
 	}
@@ -25,17 +30,17 @@ func (p *PBR) Map() map[string]float64 {
 	defer db.Close()
 	err = db.Ping()
 	checkErr(err)
-	rows, err := db.Query("SELECT dataset,size FROM avg where phgroup = ?", PHGROUP)
+	rows, err := db.Query("SELECT dataset,node,size FROM avg where phgroup = ?", PHGROUP)
 	checkErr(err)
 	defer rows.Close()
 
-	p.records = make(map[string]float64)
+	p.records = make(map[string][]DatasetAttrs)
 	for rows.Next() {
-		var dataset string
+		var dataset, site string
 		var size float64
-		err = rows.Scan(&dataset, &size)
+		err = rows.Scan(&dataset, &site, &size)
 		checkErr(err)
-		p.records[dataset] = size
+		p.records[dataset] = append(p.records[dataset], DatasetAttrs{site, size})
 	}
 	return p.records
 }
@@ -60,11 +65,11 @@ func checkErr(err error) {
 	}
 }
 
-func datasetInfoPBR(dataset string, ch chan Record) {
-	rec := make(Record)
-	rec["name"] = dataset
-	rec["size"] = PBRMAP[dataset]
-	//     rec["size"] = sizeFromPBR(dataset, PHGROUP)
-	rec["tier"] = utils.DataTier(dataset)
-	ch <- rec
-}
+// func datasetInfoPBR(dataset string, ch chan Record) {
+// 	rec := make(Record)
+// 	rec["name"] = dataset
+// 	rec["size"] = PBRMAP[dataset]
+// 	//     rec["size"] = sizeFromPBR(dataset, PHGROUP)
+// 	rec["tier"] = utils.DataTier(dataset)
+// 	ch <- rec
+// }

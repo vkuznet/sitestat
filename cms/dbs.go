@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/vkuznet/sitestat/utils"
 	"net/url"
+	"strings"
 )
 
 // helper function to load DBS data stream
@@ -63,20 +64,38 @@ func datasetSize(dataset string) float64 {
 }
 
 // DBS helper function to get dataset info from blocksummaries DBS API
-func datasetInfo(dataset string, ch chan Record) {
+func datasetInfoPBR(dataset, site string, ch chan Record) {
+	if !strings.HasSuffix(site, "_Disk") {
+		site += "_Disk"
+	}
 	size := 0.0
 	rec := make(Record)
 	rec["name"] = dataset
 	if PBRDB != "" { // take dataset size from PBR DB, instead of DBS
-		size = PBRMAP[dataset]
-		if size == 0 {
-			size = datasetSize(dataset)
+		values := PBRMAP[dataset]
+		for _, attr := range values {
+			if strings.Contains(attr.node, site) {
+				size = attr.size
+				break
+			}
 		}
-
-	} else {
+		//         if size == 0 {
+		//             size = datasetSize(dataset)
+		//         }
+	}
+	if size == 0 {
 		size = datasetSize(dataset)
 	}
 	rec["size"] = size
+	rec["tier"] = utils.DataTier(dataset)
+	ch <- rec
+}
+
+// DBS helper function to get dataset info from blocksummaries DBS API
+func datasetInfo(dataset string, ch chan Record) {
+	rec := make(Record)
+	rec["name"] = dataset
+	rec["size"] = datasetSize(dataset)
 	rec["tier"] = utils.DataTier(dataset)
 	ch <- rec
 }

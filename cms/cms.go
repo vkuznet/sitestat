@@ -17,7 +17,8 @@ import (
 var DBSINFO, BLKINFO bool
 var PBRDB, PHGROUP string
 var PDB *sql.DB
-var PBRMAP, DBSDATASETS map[string]float64
+var DBSDATASETS map[string]float64
+var PBRMAP map[string][]DatasetAttrs
 
 // exported function which process user request
 func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string) {
@@ -213,7 +214,9 @@ func updateBin(bin int, site string, names []string, tstamp, breakdown string, c
 			if BLKINFO {
 				go blockInfo(name, dch) // DBS call
 			} else {
-				if DBSINFO {
+				if PBRDB != "" {
+					go datasetInfoPBR(name, site, dch) // DBS call
+				} else if DBSINFO {
 					go datasetInfo(name, dch) // DBS call
 				} else {
 					go datasetInfoAtSite(name, site, tstamp, dch) // PhEDEx call
@@ -275,6 +278,9 @@ func bins2size(site string, brecord BinRecord, tstamp, breakdown string) (BinRec
 // set of time stamps
 func process(metric, siteName string, tstamps []string, tier, breakdown string, bins []int, ch chan Record) {
 	startTime := time.Now()
+	if utils.PROFILE {
+		fmt.Println("process", metric, siteName)
+	}
 	// get statistics from popDB for given site and time range
 	var popdbRecords []Record
 	if BLKINFO {
