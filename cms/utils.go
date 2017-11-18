@@ -2,9 +2,10 @@ package cms
 
 import (
 	"fmt"
-	"github.com/vkuznet/sitestat/utils"
 	"sort"
 	"strings"
+
+	"github.com/vkuznet/sitestat/utils"
 )
 
 func datasetNameOk(dataset string) bool {
@@ -149,9 +150,12 @@ func updateBreakdown(breakdown string, rec Record, data []Record) Record {
 		return rec
 	} else if breakdown == "dataset" {
 		for _, idict := range data {
-			dataset := strings.Split(idict["name"].(string), "#")[0]
-			size := idict["size"].(float64)
-			rec[dataset] = size
+			switch v := idict["name"].(type) {
+			case string:
+				dataset := strings.Split(v, "#")[0]
+				size := idict["size"].(float64)
+				rec[dataset] = size
+			}
 		}
 		return rec
 	} else if breakdown == "block" {
