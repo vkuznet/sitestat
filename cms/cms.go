@@ -6,11 +6,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/vkuznet/sitestat/utils"
 	"os"
 	"strings"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/vkuznet/sitestat/utils"
 )
 
 // global variables
@@ -216,8 +217,8 @@ func updateBin(bin int, site string, names []string, tstamp, breakdown string, c
 			} else {
 				if PBRDB != "" {
 					go datasetInfoPBR(name, site, dch) // DBS call
-				} else if DBSINFO {
-					go datasetInfo(name, dch) // DBS call
+					//                 } else if DBSINFO {
+					//                     go datasetInfo(name, dch) // DBS call
 				} else {
 					go datasetInfoAtSite(name, site, tstamp, dch) // PhEDEx call
 				}
