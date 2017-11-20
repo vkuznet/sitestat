@@ -136,7 +136,8 @@ func sumSizeTier(data []Record) Record {
 }
 
 // helper function to update breakdown records
-func updateBreakdown(breakdown string, rec Record, data []Record) Record {
+func updateBreakdown(breakdown string, data []Record) Record {
+	rec := make(Record)
 	if breakdown == "tier" {
 		bdata := sumSizeTier(data)
 		for k, v := range bdata {
@@ -150,7 +151,7 @@ func updateBreakdown(breakdown string, rec Record, data []Record) Record {
 		return rec
 	} else if breakdown == "dataset" {
 		for _, idict := range data {
-			switch v := idict["name"].(type) {
+			switch v := idict["dataset"].(type) {
 			case string:
 				dataset := strings.Split(v, "#")[0]
 				size := idict["size"].(float64)
@@ -160,12 +161,18 @@ func updateBreakdown(breakdown string, rec Record, data []Record) Record {
 		return rec
 	} else if breakdown == "block" {
 		for _, idict := range data {
-			block := idict["name"].(string)
+			block := idict["block"].(string)
 			size := idict["size"].(float64)
 			rec[block] = size
 		}
 		return rec
 	} else if breakdown == "" {
+		tot := 0.0
+		for _, idict := range data {
+			size := idict["size"].(float64)
+			tot += size
+		}
+		rec[breakdown] = tot
 		return rec
 	} else {
 		msg := fmt.Sprintf("Unsupported breakdown '%s'", breakdown)

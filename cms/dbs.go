@@ -6,6 +6,7 @@ import (
 	"github.com/vkuznet/sitestat/utils"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // helper function to load DBS data stream
@@ -161,18 +162,29 @@ func datasetsCreationTimes(datasets []string) map[string]float64 {
 	rdict := make(map[string]float64)
 	api := "datasetlist"
 	furl := fmt.Sprintf("%s/%s", dbsUrl(), api)
+	nattempts := 3
 	for _, chunk := range utils.MakeChunks(datasets, 1000) {
 		args := fmt.Sprintf("{\"detail\":true,\"dataset\":[%s]}", list2comma(chunk))
-		response := utils.FetchResponse(furl, args)
-		if response.Error == nil {
-			records := loadDBSData(furl, response.Data)
-			if utils.VERBOSE > 1 {
-				fmt.Println("furl", furl, records)
-			}
-			for _, rec := range records {
-				name := rec["dataset"].(string)
-				ctime := rec["creation_date"].(float64)
-				rdict[name] = ctime
+		for i := 0; i < nattempts; i++ {
+			response := utils.FetchResponse(furl, args)
+			if response.Error == nil {
+				records := loadDBSData(furl, response.Data)
+				if utils.VERBOSE > 1 {
+					fmt.Println("furl", furl, records)
+				}
+				for _, rec := range records {
+					name := rec["dataset"].(string)
+					ctime := rec["creation_date"].(float64)
+					rdict[name] = ctime
+				}
+				break
+			} else {
+				if i == nattempts {
+					panic(response.Error)
+				} else {
+					fmt.Println("DBS response error", response.Error)
+				}
+				time.Sleep(time.Duration(100+i) * time.Millisecond)
 			}
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/vkuznet/sitestat/utils"
 	"strings"
+	"sync"
 )
 
 // helper function to load data stream and return DAS records
@@ -22,15 +23,17 @@ func loadPhedexData(furl string, data []byte) []Record {
 }
 
 // helper function to find all dataset at a given tier-site
-func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record) {
+func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record, wg *sync.WaitGroup) {
+	defer wg.Done()
 	if !datasetNameOk(dataset) {
 		ch <- Record{"dataset": dataset, "size": 0.0, "tier": "unknown"}
 		return
 	}
 	api := "blockreplicas"
-	furl := fmt.Sprintf("%s/%s?dataset=%s&node=%s&create_since=%d", phedexUrl(), api, dataset, siteName, utils.UnixTime(tstamp))
+	//     furl := fmt.Sprintf("%s/%s?dataset=%s&node=%s&create_since=%d", phedexUrl(), api, dataset, siteName, utils.UnixTime(tstamp))
+	furl := fmt.Sprintf("%s/%s?dataset=%s&node=%s", phedexUrl(), api, dataset, siteName)
 	if utils.VERBOSE > 1 {
-		fmt.Println("furl", furl)
+		fmt.Println("furl", furl, "look-up tstamp", tstamp)
 	}
 	//     if strings.HasPrefix(siteName, "T1_") && !strings.HasSuffix(siteName, "_Disk") {
 	//         siteName += "_Disk"
