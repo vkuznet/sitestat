@@ -48,12 +48,17 @@ func formatResults(metric string, bins []int, records []Record, breakdown string
 			pad := ""
 			for _, bin := range ikeys {
 				size := results[bin].(float64)
-				bdown := bresults[bin].(Record)
-				if bin == bins[len(bins)-1] {
-					pad = "+"
+				brec := bresults[bin]
+				if brec != nil {
+					if bin == bins[len(bins)-1] {
+						pad = "+"
+					}
 				}
 				report += fmt.Sprintf("%s %d%s size %f (%s)\n", metric, bin, pad, size, utils.SizeFormat(size))
-				report += formatBreakdown(bdown, breakdown)
+				if brec != nil {
+					bdown := bresults[bin].(Record)
+					report += formatBreakdown(bdown, breakdown)
+				}
 			}
 			fmt.Println(report)
 		}
