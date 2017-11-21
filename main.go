@@ -31,6 +31,8 @@ func main() {
 	flag.StringVar(&bins, "bins", "", "Comma separated list of bin values, e.g. 0,1,2,3,4 for naccesses or 0,10,100 for tot cpu metrics")
 	var format string
 	flag.StringVar(&format, "format", "txt", "Output format type, txt or json")
+	var tierPatterns string
+	flag.StringVar(&tierPatterns, "tierPatterns", "", "comma separated data-tier patterns, e.g. .*AOD.*,.*RECO$")
 	var chunkSize int
 	flag.IntVar(&chunkSize, "chunkSize", 100, "chunkSize for processing URLs")
 	var verbose int
@@ -45,5 +47,5 @@ func main() {
 	cms.BLKINFO = blkinfo
 	cms.PBRDB = pbrdb
 	cms.PHGROUP = phgroup
-	cms.Process(metric, site, trange, tier, breakdown, bins, format)
+	cms.Process(metric, site, trange, tier, breakdown, bins, format, tierPatterns)
 }

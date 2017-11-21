@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	//     "sort"
 	"strings"
 	"sync"
@@ -24,7 +25,7 @@ var DBSDATASETS map[string]float64
 var PBRMAP map[string][]DatasetAttrs
 
 // exported function which process user request
-func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string) {
+func Process(metric, siteName, tstamp, tier, breakdown, binValues, format, tierPatterns string) {
 	startTime := time.Now()
 	utils.TestEnv()
 	utils.TestMetric(metric)
@@ -65,8 +66,8 @@ func Process(metric, siteName, tstamp, tier, breakdown, binValues, format string
 		wg.Add(1)
 		// I'm unable (yet) concurrently process site metrics since DBS
 		// server timeout on concurrent requests, therefore I process them sequentially
-		process(metric, siteName, tstamps, tier, breakdown, bins, ch, &wg)
-		//         go process(metric, siteName, tstamps, tier, breakdown, bins, ch, &wg)
+		process(metric, siteName, tstamps, tier, breakdown, bins, tierPatterns, ch, &wg)
+		//         go process(metric, siteName, tstamps, tier, breakdown, bins, tierPatterns, ch, &wg)
 	}
 	wg.Wait()
 	// collect results
@@ -294,9 +295,53 @@ func bins2size(site string, brecord BinRecord, tstamp, breakdown string) (BinRec
 	return rdict, bdict
 }
 
+// select specified data-tier patterns
+func selectPatterns(records []Record, tierPatterns string) []Record {
+	if tierPatterns == "" {
+		return records
+	}
+	var out []Record
+	for _, rec := range records {
+		val := rec["COLLNAME"].(string)
+		for _, pat := range strings.Split(tierPatterns, ",") {
+			matched, _ := regexp.MatchString(pat, val)
+			if matched {
+				out = append(out, rec)
+				break
+			}
+		}
+	}
+	return list2Set(out)
+}
+
+// helper function to check item in a list
+func inList(a Record, list []Record) bool {
+	check := 0
+	for _, b := range list {
+		if b["COLLNAME"].(string) == a["COLLNAME"].(string) {
+			check += 1
+		}
+	}
+	if check != 0 {
+		return true
+	}
+	return false
+}
+
+// helper function to convert input list into set
+func list2Set(arr []Record) []Record {
+	var out []Record
+	for _, r := range arr {
+		if !inList(r, out) {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
 // local function which process single request for given site name and
 // set of time stamps
-func process(metric, siteName string, tstamps []string, tier, breakdown string, bins []int, ch chan Record, wg *sync.WaitGroup) {
+func process(metric, siteName string, tstamps []string, tier, breakdown string, bins []int, tierPatterns string, ch chan Record, wg *sync.WaitGroup) {
 	defer wg.Done()
 	startTime := time.Now()
 	if utils.PROFILE {
@@ -312,6 +357,11 @@ func process(metric, siteName string, tstamps []string, tier, breakdown string, 
 	if utils.PROFILE {
 		fmt.Println("popDBRecords", time.Since(startTime))
 	}
+	// select data-tier pattenrs
+	//     fmt.Println("original", len(popdbRecords))
+	popdbRecords = selectPatterns(popdbRecords, tierPatterns)
+	//     fmt.Println("selected", len(popdbRecords))
+	//     panic("TEST")
 	// sort dataset results from popDB into bins by given metric
 	rdict := popdb2Bins(metric, bins, popdbRecords, siteName, tstamps)
 	if utils.PROFILE {
