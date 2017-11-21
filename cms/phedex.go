@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/vkuznet/sitestat/utils"
+	"math"
 	"strings"
 	"sync"
 )
@@ -26,7 +27,7 @@ func loadPhedexData(furl string, data []byte) []Record {
 func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if !datasetNameOk(dataset) {
-		ch <- Record{"dataset": dataset, "size": 0.0, "tier": "unknown"}
+		ch <- Record{"dataset": dataset, "size": 0.0, "tier": "unknown", "norm": 0.0, "bin": 0}
 		return
 	}
 	api := "blockreplicas"
@@ -40,6 +41,7 @@ func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record, wg *syn
 	//     }
 	response := utils.FetchResponse(furl, "")
 	size := 0.
+	sdict := make(map[string]int)
 	if response.Error == nil {
 		records := loadPhedexData(furl, response.Data)
 		for _, rec := range records {
@@ -49,10 +51,34 @@ func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record, wg *syn
 				brec := item.(map[string]interface{})
 				bytes := brec["bytes"].(float64)
 				size += bytes
+				replicas := brec["replica"].([]interface{})
+				for _, r := range replicas {
+					rep := r.(map[string]interface{})
+					node := rep["node"].(string)
+					files := int(rep["files"].(float64))
+					v, ok := sdict[node]
+					if ok {
+						sdict[node] = v + files
+					} else {
+						sdict[node] = files
+					}
+				}
 			}
 		}
 	}
-	ch <- Record{"dataset": dataset, "size": size, "tier": utils.DataTier(dataset)}
+	// norm factor
+	maxFiles := 0
+	for _, v := range sdict {
+		if maxFiles < v {
+			maxFiles = v
+		}
+	}
+	norm := 0.0
+	for _, v := range sdict {
+		norm += float64(v) / float64(maxFiles)
+	}
+	bin := int(math.Ceil(float64(maxFiles) / norm))
+	ch <- Record{"dataset": dataset, "size": size, "tier": utils.DataTier(dataset), "norm": norm, "bin": bin}
 }
 
 // helper function to find all dataset at a given tier-site
