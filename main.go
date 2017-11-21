@@ -18,7 +18,7 @@ func main() {
 	var tier string
 	flag.StringVar(&tier, "tier", "", "Look-up specific data-tier")
 	var metric string
-	flag.StringVar(&metric, "metric", "NACC", "Popularity DB metric (NACC, TOTCPU, NUSERS)")
+	flag.StringVar(&metric, "metric", "NACC", "Popularity DB metric (NACC, RNACC, TOTCPU, NUSERS)")
 	var phgroup string
 	flag.StringVar(&phgroup, "phgroup", "AnalysisOps", "Phedex group name")
 	var blkinfo bool
