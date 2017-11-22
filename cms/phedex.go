@@ -27,7 +27,7 @@ func loadPhedexData(furl string, data []byte) []Record {
 func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if !datasetNameOk(dataset) {
-		ch <- Record{"dataset": dataset, "size": 0.0, "tier": "unknown", "norm": 0.0, "bin": 0}
+		ch <- Record{"dataset": dataset, "size": 0.0, "tier": "unknown"}
 		return
 	}
 	api := "blockreplicas"
@@ -39,6 +39,36 @@ func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record, wg *syn
 	//     if strings.HasPrefix(siteName, "T1_") && !strings.HasSuffix(siteName, "_Disk") {
 	//         siteName += "_Disk"
 	//     }
+	response := utils.FetchResponse(furl, "")
+	size := 0.
+	if response.Error == nil {
+		records := loadPhedexData(furl, response.Data)
+		for _, rec := range records {
+			val := rec["phedex"].(map[string]interface{})
+			blocks := val["block"].([]interface{})
+			for _, item := range blocks {
+				brec := item.(map[string]interface{})
+				bytes := brec["bytes"].(float64)
+				size += bytes
+			}
+		}
+	}
+	ch <- Record{"dataset": dataset, "size": size, "tier": utils.DataTier(dataset)}
+}
+
+// helper function to find all dataset at a given tier-site
+func datasetInfoPhEDEx(dataset, tstamp string, metric int, ch chan Record, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if !datasetNameOk(dataset) {
+		ch <- Record{"dataset": dataset, "size": 0.0, "tier": "unknown", "norm": 0.0, "bin": 0}
+		return
+	}
+	api := "blockreplicas"
+	//     furl := fmt.Sprintf("%s/%s?dataset=%s&create_since=%d", phedexUrl(), api, dataset, utils.UnixTime(tstamp))
+	furl := fmt.Sprintf("%s/%s?dataset=%s", phedexUrl(), api, dataset)
+	if utils.VERBOSE > 1 {
+		fmt.Println("furl", furl, "look-up tstamp", tstamp)
+	}
 	response := utils.FetchResponse(furl, "")
 	size := 0.
 	sdict := make(map[string]int)
@@ -77,8 +107,11 @@ func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record, wg *syn
 	for _, v := range sdict {
 		norm += float64(v) / float64(maxFiles)
 	}
-	bin := int(math.Ceil(float64(maxFiles) / norm))
-	ch <- Record{"dataset": dataset, "size": size, "tier": utils.DataTier(dataset), "norm": norm, "bin": bin}
+	bin := int(math.Ceil(float64(metric) / norm))
+	if norm == 0 {
+		bin = 0
+	}
+	ch <- Record{"dataset": dataset, "size": size, "tier": utils.DataTier(dataset), "norm": norm, "bin": bin, "maxFiles": maxFiles}
 }
 
 // helper function to find all dataset at a given tier-site
