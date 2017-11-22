@@ -149,6 +149,27 @@ func oldDatasets(datasets []string, thr float64, site string) []string {
 //    else if dataset.timecreate >= now-timewindow:
 //  	 histogram[0_new] = dataset.weightedsize
 
+type PopDBRecord struct {
+	metric int
+	name   string
+}
+
+func pdbRecords(metric string, records []Record) []PopDBRecord {
+	var out []PopDBRecord
+	var mval int
+	for _, rec := range records { // loop over popularity records
+		if metric == "RNACC" {
+			v, _ := strconv.ParseFloat(rec[metric].(string), 64)
+			mval = int(math.Ceil(v))
+		} else {
+			mval = int(rec[metric].(float64))
+		}
+		name := rec["name"].(string)
+		out = append(out, PopDBRecord{mval, name})
+	}
+	return out
+}
+
 // helper function to collect popularity results and merge them into bins of given metric
 // with the help of updateDict function.
 // return rdict which is a dictionary of bins and corresponding dataset names
@@ -287,29 +308,66 @@ func bins2size(site string, brecord BinRecord, tstamp, breakdown string) (BinRec
 	return rdict, bdict
 }
 
-// helper function to convert popdb bin record dict[nacc] = [datasets] into
-// dict[nacc] = size
-// Here we use site purely to show the progress in verbose mode
-func collectBins(site string, brecord BinRecord, tstamp, breakdown string) (BinRecord, BinRecord) {
-	rdict := make(BinRecord)
-	bdict := make(BinRecord)
-	datasetsOld := brecord[-1].([]string)
-	datasetsZero := brecord[0].([]string)
-	var datasets []string
-	for bin, val := range brecord {
-		if bin > 0 {
-			for _, d := range val.([]string) {
-				datasets = append(datasets, d)
-			}
+// helper function to make chunks from provided list
+func makeChunks(arr []PopDBRecord, size int) [][]PopDBRecord {
+	if size == 0 {
+		fmt.Println("WARNING: chunk size is not set, will use size 10")
+		size = 10
+	}
+	var out [][]PopDBRecord
+	alen := len(arr)
+	abeg := 0
+	aend := size
+	for {
+		if aend < alen {
+			out = append(out, arr[abeg:aend])
+			abeg = aend
+			aend += size
+		} else {
+			break
 		}
 	}
+	if abeg < alen {
+		out = append(out, arr[abeg:alen])
+	}
+	return out
+}
+
+// helper function to convert popdb records int proper bins
+func collectBins(siteName string, records []PopDBRecord, tstamp, breakdown string) (BinRecord, BinRecord) {
+
+	// loop over site content and collect zero bin for given metric
+	recType := "dataset" // TODO, get it from first records
+	siteNames := siteContent(siteName, tstamp, recType)
+	var zeroMetricNames []string
+	var popdbNames []string
+	for _, rec := range records {
+		popdbNames = append(popdbNames, rec.name)
+	}
+	for _, name := range siteNames {
+		if !utils.InList(name, popdbNames) {
+			zeroMetricNames = append(zeroMetricNames, name)
+		}
+	}
+
+	// fetch old datasets, those who are in zero bin but their creation time
+	// is older then interval we're intersting.
+	thr := float64(utils.UnixTime(tstamp))
+	datasetsOld := oldDatasets(zeroMetricNames, thr, siteName)
+	datasetsZero := utils.Substruct(zeroMetricNames, datasetsOld)
+
+	// output dicts
+	rdict := make(BinRecord)
+	bdict := make(BinRecord)
+
 	// get sizes of old datasets
+	fmt.Println("old", len(datasetsOld))
 	for _, chunk := range utils.MakeChunks(datasetsOld, utils.CHUNKSIZE) {
 		dch := make(chan Record, len(chunk))
 		var wg sync.WaitGroup
 		for _, name := range chunk {
 			wg.Add(1)
-			go datasetInfoAtSite(name, site, tstamp, dch, &wg) // PhEDEx call
+			go datasetInfoPhEDEx(name, tstamp, 0, dch, &wg) // PhEDEx call
 		}
 		wg.Wait()
 		for i := 0; i < len(chunk); i++ {
@@ -323,12 +381,13 @@ func collectBins(site string, brecord BinRecord, tstamp, breakdown string) (BinR
 		}
 	}
 	// get sizes of zero bin datasets
+	fmt.Println("zero", len(datasetsZero))
 	for _, chunk := range utils.MakeChunks(datasetsZero, utils.CHUNKSIZE) {
 		dch := make(chan Record, len(chunk))
 		var wg sync.WaitGroup
 		for _, name := range chunk {
 			wg.Add(1)
-			go datasetInfoAtSite(name, site, tstamp, dch, &wg) // PhEDEx call
+			go datasetInfoPhEDEx(name, tstamp, 0, dch, &wg) // PhEDEx call
 		}
 		wg.Wait()
 		for i := 0; i < len(chunk); i++ {
@@ -342,16 +401,21 @@ func collectBins(site string, brecord BinRecord, tstamp, breakdown string) (BinR
 		}
 	}
 	// get sizes of the rest of datasets
-	for _, chunk := range utils.MakeChunks(datasets, utils.CHUNKSIZE) {
+	fmt.Println("all", len(records))
+	for _, chunk := range makeChunks(records, utils.CHUNKSIZE) {
 		dch := make(chan Record, len(chunk))
 		var wg sync.WaitGroup
-		for _, name := range chunk {
+		for _, rec := range chunk {
 			wg.Add(1)
-			go datasetInfoAtSite(name, site, tstamp, dch, &wg) // PhEDEx call
+			go datasetInfoPhEDEx(rec.name, tstamp, rec.metric, dch, &wg) // PhEDEx call
 		}
 		wg.Wait()
 		for i := 0; i < len(chunk); i++ {
 			r := <-dch
+			v := r["bin"]
+			if v == nil {
+				continue
+			}
 			bin := r["bin"].(int)
 			if bin > 14 {
 				bin = 15
@@ -434,11 +498,13 @@ func process(metric, siteName string, tstamps []string, tier, breakdown string, 
 	// sort dataset results from popDB into bins by given metric
 	rdict := popdb2Bins(metric, bins, popdbRecords, siteName, tstamps)
 	if utils.PROFILE {
-		fmt.Println("popdb2Bins", time.Since(startTime))
+		fmt.Println("popdb2Bins", time.Since(startTime), len(rdict))
 	}
 	// find out size for all bins
 	results, bres := bins2size(siteName, rdict, tstamps[0], breakdown)
-	//     results, bres := collectBins(siteName, rdict, tstamps[0], breakdown)
+	// new way to collect records, via normalization
+	//     recs := pdbRecords(metric, popdbRecords)
+	//     results, bres := collectBins(siteName, recs, tstamps[0], breakdown)
 	if utils.PROFILE {
 		fmt.Println("bins2size", time.Since(startTime))
 	}
