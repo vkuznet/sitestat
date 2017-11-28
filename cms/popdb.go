@@ -29,14 +29,7 @@ func loadVictorDBData(furl string, data []byte, site, tier string) []Record {
 		rec := idict.(map[string]interface{})
 		rec["name"] = blk
 		dataset := strings.Split(blk, "#")[0]
-		dataTier := utils.DataTier(dataset)
-		keep := true
-		if tier != "" {
-			if dataTier != tier {
-				keep = false
-			}
-		}
-		if keep {
+		if keepDataTier(dataset, tier) {
 			out = append(out, rec)
 		}
 	}
@@ -61,14 +54,7 @@ func loadPopDBData(furl string, data []byte, tier string) []Record {
 		rec := item.(map[string]interface{})
 		dataset := rec["COLLNAME"].(string)
 		rec["name"] = dataset
-		dataTier := utils.DataTier(dataset)
-		keep := true
-		if tier != "" {
-			if dataTier != tier {
-				keep = false
-			}
-		}
-		if keep {
+		if keepDataTier(dataset, tier) {
 			out = append(out, rec)
 		}
 	}

@@ -2,6 +2,7 @@ package cms
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -183,4 +184,83 @@ func updateBreakdown(breakdown string, data []Record) Record {
 		msg := fmt.Sprintf("Unsupported breakdown '%s'", breakdown)
 		panic(msg)
 	}
+}
+
+// select specified data-tier patterns
+func selectPatterns(records []Record, tierPatterns string) []Record {
+	if tierPatterns == "" {
+		return records
+	}
+	var out []Record
+	for _, rec := range records {
+		val := rec["COLLNAME"].(string)
+		for _, pat := range strings.Split(tierPatterns, ",") {
+			matched, _ := regexp.MatchString(pat, val)
+			if matched {
+				out = append(out, rec)
+				break
+			}
+		}
+	}
+	return list2Set(out)
+}
+
+// helper function to check item in a list
+func inList(a Record, list []Record) bool {
+	check := 0
+	for _, b := range list {
+		if b["COLLNAME"].(string) == a["COLLNAME"].(string) {
+			check += 1
+		}
+	}
+	if check != 0 {
+		return true
+	}
+	return false
+}
+
+// helper function to convert input list into set
+func list2Set(arr []Record) []Record {
+	var out []Record
+	for _, r := range arr {
+		if !inList(r, out) {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// helper function to make chunks from provided list
+func makeChunks(arr []PopDBRecord, size int) [][]PopDBRecord {
+	if size == 0 {
+		fmt.Println("WARNING: chunk size is not set, will use size 10")
+		size = 10
+	}
+	var out [][]PopDBRecord
+	alen := len(arr)
+	abeg := 0
+	aend := size
+	for {
+		if aend < alen {
+			out = append(out, arr[abeg:aend])
+			abeg = aend
+			aend += size
+		} else {
+			break
+		}
+	}
+	if abeg < alen {
+		out = append(out, arr[abeg:alen])
+	}
+	return out
+}
+
+// helper function to check data-tier
+func keepDataTier(name, tier string) bool {
+	keep := true
+	dataTier := utils.DataTier(name)
+	if tier != "" && dataTier != tier {
+		keep = false
+	}
+	return keep
 }

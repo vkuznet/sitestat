@@ -57,15 +57,15 @@ func datasetInfoAtSite(dataset, siteName, tstamp string, ch chan Record, wg *syn
 }
 
 // helper function to find all dataset at a given tier-site
-func datasetInfoPhEDEx(dataset, tstamp string, metric int, ch chan Record, wg *sync.WaitGroup) {
+func datasetInfoPhEDEx(dataset, siteName, tstamp string, metric int, ch chan Record, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if !datasetNameOk(dataset) {
 		ch <- Record{"dataset": dataset, "size": 0.0, "tier": "unknown", "norm": 0.0, "bin": 0}
 		return
 	}
 	api := "blockreplicas"
-	//     furl := fmt.Sprintf("%s/%s?dataset=%s&create_since=%d", phedexUrl(), api, dataset, utils.UnixTime(tstamp))
-	furl := fmt.Sprintf("%s/%s?dataset=%s", phedexUrl(), api, dataset)
+	furl := fmt.Sprintf("%s/%s?dataset=%s&create_since=%d", phedexUrl(), api, dataset, utils.UnixTime(tstamp))
+	//     furl := fmt.Sprintf("%s/%s?dataset=%s", phedexUrl(), api, dataset)
 	if utils.VERBOSE > 1 {
 		fmt.Println("furl", furl, "look-up tstamp", tstamp)
 	}
@@ -107,11 +107,14 @@ func datasetInfoPhEDEx(dataset, tstamp string, metric int, ch chan Record, wg *s
 	for _, v := range sdict {
 		norm += float64(v) / float64(maxFiles)
 	}
-	bin := int(math.Ceil(float64(metric) / norm))
+	bin := int(math.Ceil(float64(metric) / (float64(maxFiles) * norm)))
 	if norm == 0 {
 		bin = 0
 	}
-	ch <- Record{"dataset": dataset, "size": size, "tier": utils.DataTier(dataset), "norm": norm, "bin": bin, "maxFiles": maxFiles}
+	//     if _, ok := sdict[siteName]; !ok {
+	//         size = 0 // dataset is not present on our site
+	//     }
+	ch <- Record{"dataset": dataset, "size": size, "tier": utils.DataTier(dataset), "norm": norm, "bin": bin, "maxFiles": maxFiles, "nsites": len(sdict), "metric": metric}
 }
 
 // helper function to find all dataset at a given tier-site
@@ -148,7 +151,7 @@ func datasetsDictAtSite(siteName, tstamp string) Record {
 }
 
 // helper function to get site content. Return either list of blocks or datasets on site.
-func siteContent(siteName, tstamp, recType string) []string {
+func siteContent(siteName, tstamp, recType, tier string) []string {
 	api := "blockreplicasummary"
 	if strings.HasPrefix(siteName, "T1_") && !strings.HasSuffix(siteName, "_Disk") {
 		siteName += "_Disk"
@@ -168,10 +171,13 @@ func siteContent(siteName, tstamp, recType string) []string {
 			for _, item := range blocks {
 				brec := item.(map[string]interface{})
 				blk := brec["name"].(string)
+				dataset := strings.Split(blk, "#")[0]
+				if !keepDataTier(dataset, tier) {
+					continue
+				}
 				if recType == "block" {
 					ddict[blk] = struct{}{}
 				} else { // look-up dataset name
-					dataset := strings.Split(blk, "#")[0]
 					if datasetNameOk(dataset) {
 						ddict[dataset] = struct{}{}
 					}

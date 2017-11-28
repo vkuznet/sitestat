@@ -25,6 +25,8 @@ func main() {
 	flag.BoolVar(&blkinfo, "blkinfo", false, "Use block information for finding statistics, by default use dataset info")
 	var dbsinfo bool
 	flag.BoolVar(&dbsinfo, "dbsinfo", false, "Use DBS to collect dataset information, default use PhEDEx")
+	var norm bool
+	flag.BoolVar(&norm, "norm", false, "Use normalization method")
 	var breakdown string
 	flag.StringVar(&breakdown, "breakdown", "", "Breakdown report into more details (tier, dataset)")
 	var bins string
@@ -47,5 +49,6 @@ func main() {
 	cms.BLKINFO = blkinfo
 	cms.PBRDB = pbrdb
 	cms.PHGROUP = phgroup
+	cms.NORM = norm
 	cms.Process(metric, site, trange, tier, breakdown, bins, format, tierPatterns)
 }
