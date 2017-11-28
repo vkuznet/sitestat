@@ -48,5 +48,5 @@ print(tdfnorm)
 
 pdf(out)
 #ggplot(tdfnorm, aes(x=bins, y=size)) + geom_bar(position="dodge", stat="identity") + ggtitle("Total size at T1") + xlab("Number of accesses") + ylab("Total size in TB")
-ggplot(tdfnorm, aes(x=bins, y=size)) + geom_bar(position="dodge", stat="identity") + ggtitle("Total size at T1") + xlab("Number of accesses") + ylab("Total size in PB")
+ggplot(tdfnorm, aes(x=bins, y=size)) + geom_bar(position="dodge", stat="identity") + ggtitle("Total size at T1+T2") + xlab("Number of accesses") + ylab("Total size in PB")
 dev.off()
