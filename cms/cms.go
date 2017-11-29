@@ -159,7 +159,7 @@ func pdbRecords(metric string, records []Record) []PopDBRecord {
 	var mval int
 	recType := "dataset"
 	for idx, rec := range records { // loop over popularity records
-		if metric == "RNACC" {
+		if metric == "RNACC" || metric == "RTOTCPU" || metric == "RNUSERS" {
 			v, _ := strconv.ParseFloat(rec[metric].(string), 64)
 			mval = int(math.Ceil(v))
 		} else {

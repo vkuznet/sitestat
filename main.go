@@ -4,6 +4,7 @@ package main
 
 import (
 	"flag"
+
 	"github.com/vkuznet/sitestat/cms"
 	"github.com/vkuznet/sitestat/utils"
 )
@@ -18,7 +19,7 @@ func main() {
 	var tier string
 	flag.StringVar(&tier, "tier", "", "Look-up specific data-tier")
 	var metric string
-	flag.StringVar(&metric, "metric", "NACC", "Popularity DB metric (NACC, RNACC, TOTCPU, NUSERS)")
+	flag.StringVar(&metric, "metric", "NACC", "Popularity DB metric (NACC, RNACC, TOTCPU, RTOTCPU, NUSERS, RNUSERS)")
 	var phgroup string
 	flag.StringVar(&phgroup, "phgroup", "AnalysisOps", "Phedex group name")
 	var blkinfo bool

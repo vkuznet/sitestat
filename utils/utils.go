@@ -27,8 +27,29 @@ func TestEnv() {
 		os.Exit(-1)
 	}
 }
+
+/*
+Definition of the RNACC, etc. metrics
+I think the answers can be found in the code here:
+https://github.com/dmwm/DDM/blob/master/DataPopularity/popdb.web/lib/Apps/popularity/database/popDB.py
+
+It looks like NACC is the sum of the number of accesses within a time period:
+
+sum(numAccesses) as nAcc
+
+https://github.com/dmwm/DDM/blob/fab1405ed88e5f02306e70fc23c7bbed05fd2de6/DataPopularity/popdb.web/lib/Apps/popul
+arity/database/popDB.py#L29
+
+and RNACC appears to be the percent of the number of accesses compared to the total number:
+
+100* ratio_to_report(nAcc) over() as rnAcc
+
+https://github.com/dmwm/DDM/blob/fab1405ed88e5f02306e70fc23c7bbed05fd2de6/DataPopularity/popdb.web/lib/Apps/popul
+arity/database/popDB.py#L52
+*/
+
 func TestMetric(metric string) {
-	metrics := []string{"NACC", "RNACC", "TOTCPU", "NUSERS"}
+	metrics := []string{"NACC", "RNACC", "TOTCPU", "RTOTCPU", "NUSERS", "RNUSERS"}
 	if !InList(metric, metrics) {
 		msg := fmt.Sprintf("Wrong metric '%s', please choose from %v", metric, metrics)
 		fmt.Println(msg)
